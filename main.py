@@ -54,7 +54,7 @@ class NFA:
         S = set(string)
         d = {(q, c): set() for q, c in product(Q, S | {""})}
         for i, c in enumerate(string):
-            d[(states[i], c)] |= {states[i + 1]}
+            d[states[i], c] |= {states[i + 1]}
         q0 = states[0]
         F = {states[-1]}
 
@@ -72,15 +72,15 @@ class NFA:
         Q = Q1 | Q2
         S = S1 | S2
         d = {
-            (q, c): set(d1[(q, c)])
+            (q, c): set(d1[q, c])
             if (q, c) in d1
-            else set(d2[(q, c)])
+            else set(d2[q, c])
             if (q, c) in d2
             else set()
             for q, c in product(Q, S | {""})
         }
         for q in F1:
-            d[(q, "")] |= {q2}
+            d[q, ""] |= {q2}
         q0 = q1
         F = F2
 
@@ -98,12 +98,12 @@ class NFA:
         Q = Q1 | {q0}
         S = S1
         d = {
-            (q, c): set(d1[(q, c)]) if (q, c) in d1 else set()
+            (q, c): set(d1[q, c]) if (q, c) in d1 else set()
             for q, c in product(Q, S | {""})
         }
         for q in F1:
-            d[(q, "")] |= {q1}
-        d[(q0, "")] |= {q1}
+            d[q, ""] |= {q1}
+        d[q0, ""] |= {q1}
         F = F1
 
         return NFA((Q, S, d, q0, F))
@@ -121,14 +121,14 @@ class NFA:
         Q = Q1 | Q2 | {q0}
         S = S1 | S2
         d = {
-            (q, c): set(d1[(q, c)])
+            (q, c): set(d1[q, c])
             if (q, c) in d1
-            else set(d2[(q, c)])
+            else set(d2[q, c])
             if (q, c) in d2
             else set()
             for q, c in product(Q, S | {""})
         }
-        d[(q0, "")] |= {q1, q2}
+        d[q0, ""] |= {q1, q2}
         F = F1 | F2
 
         return NFA((Q, S, d, q0, F))
