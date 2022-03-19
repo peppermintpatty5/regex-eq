@@ -1,3 +1,4 @@
+from collections import deque
 from itertools import product
 
 
@@ -25,7 +26,7 @@ class NFA:
         Q, S, d, q0, F = self.N
 
         # associate states with human-readable numbers via enumeration
-        state_map = {q: i for i, q in enumerate(Q)}
+        state_map = {q: i + 1 for i, q in enumerate(Q)}
 
         return repr(
             (
@@ -133,11 +134,124 @@ class NFA:
 
         return NFA((Q, S, d, q0, F))
 
+    def to_DFA(self) -> "DFA":
+        """
+        Convert this NFA into an equivalent DFA.
+        """
+        N1 = self.N
+        Q1, S1, d1, q1, F1 = N1
+
+        def E(R: set[object]) -> frozenset[object]:
+            """
+            The epsilon closure, which returns the set of states that are reachable from
+            `R` through 0 or more epsilon transitions.
+            """
+            queue = deque(R)
+            visited = set(R)
+
+            while queue:
+                q = queue.pop()
+                for r in d1[q, ""]:
+                    if r not in visited:
+                        queue.append(r)
+                        visited.add(r)
+
+            return frozenset(visited)
+
+        new_start = E({q1})
+        queue = deque([new_start])
+        subsets = {new_start}
+        transitions = {}
+
+        while queue:
+            subset = queue.pop()
+            for c in S1:
+                neighbors = E(set().union(*(d1[q, c] for q in subset)))
+                transitions[subset, c] = neighbors
+
+                if neighbors not in subsets:
+                    queue.append(neighbors)
+                    subsets.add(neighbors)
+
+        # map subsets to plain states
+        states = {subset: object() for subset in subsets}
+        Q = set(states.values())
+        S = S1
+        d = {
+            (states[R_in], c): states[R_out] for (R_in, c), R_out in transitions.items()
+        }
+        q0 = states[new_start]
+        F = {states[R] for R in subsets if R & F1 != set()}
+
+        return DFA((Q, S, d, q0, F))
+
+
+class DFA(NFA):
+    """
+    Class representation of a deterministic finite automaton
+    """
+
+    def __init__(
+        self,
+        M: tuple[
+            set[object],
+            set[str],
+            dict[tuple[object, str], object],
+            object,
+            set[object],
+        ],
+    ) -> None:
+        """
+        5-tuple definition of a DFA
+        """
+        Q, S, d, q0, F = M
+
+        d = {(q_in, c): {q_out} for (q_in, c), q_out in d.items()} | {
+            (q, ""): set() for q in Q
+        }
+
+        super().__init__((Q, S, d, q0, F))
+
+    def __repr__(self) -> str:
+        Q, S, d, q0, F = self.N
+
+        # associate states with human-readable numbers via enumeration
+        state_map = {q: i + 1 for i, q in enumerate(Q)}
+
+        return repr(
+            (
+                {state_map[q] for q in Q},
+                S,
+                {
+                    (state_map[q_in], c): state_map[next(iter(q_out))]
+                    for (q_in, c), q_out in d.items()
+                    if c != ""
+                },
+                state_map[q0],
+                {state_map[q] for q in F},
+            )
+        )
+
+    def accept(self, string: str) -> bool:
+        """
+        Return true if the DFA accepts the input string, false otherwise.
+        """
+        Q, S, d, q0, F = self.N
+
+        q = q0
+        for c in string:
+            (q,) = d[q, c]
+
+        return q in F
+
 
 if __name__ == "__main__":
     a = NFA.from_string("a")
     b = NFA.from_string("b")
+    n = a.concat(a.star()).union(b)
+    m = n.to_DFA()
 
-    print(a)
-    print(b)
-    print(a.concat(a.star()).union(b))
+    print(a, b, n, m, sep="\n")
+
+    while True:
+        print(m.accept(input()))
