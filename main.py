@@ -244,12 +244,28 @@ class DFA(NFA):
 
         return q in F
 
+    def complement(self) -> "DFA":
+        """
+        Construct an NFA `N` from `N1` such that the language of `N`, denoted as `L(N)`,
+        is the complement of `L(N1)`.
+        """
+        N1 = self.N
+        Q1, S1, d1, q1, F1 = N1
+
+        Q = Q1
+        S = S1
+        d = {(q_in, c): next(iter(q_out)) for (q_in, c), q_out in d1.items() if c != ""}
+        q0 = q1
+        F = Q - F1
+
+        return DFA((Q, S, d, q0, F))
+
 
 if __name__ == "__main__":
     a = NFA.from_string("a")
     b = NFA.from_string("b")
     n = a.concat(a.star()).union(b)
-    m = n.to_DFA()
+    m = n.to_DFA().complement()
 
     print(a, b, n, m, sep="\n")
 
