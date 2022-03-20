@@ -42,6 +42,18 @@ class NFA:
             )
         )
 
+    def __add__(self, other):
+        if isinstance(other, NFA):
+            return self.concat(other)
+        else:
+            return NotImplemented
+
+    def __or__(self, other):
+        if isinstance(other, NFA):
+            return self.union(other)
+        else:
+            return NotImplemented
+
     @staticmethod
     def from_string(string: str):
         """
@@ -232,6 +244,9 @@ class DFA(NFA):
             )
         )
 
+    def __invert__(self):
+        return self.complement()
+
     def accept(self, string: str) -> bool:
         """
         Return true if the DFA accepts the input string, false otherwise.
@@ -264,8 +279,8 @@ class DFA(NFA):
 if __name__ == "__main__":
     a = NFA.from_string("a")
     b = NFA.from_string("b")
-    n = a.concat(a.star()).union(b)
-    m = n.to_DFA().complement()
+    n = a + a.star() | b
+    m = ~n.to_DFA()
 
     print(a, b, n, m, sep="\n")
 
