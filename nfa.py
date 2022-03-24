@@ -54,10 +54,9 @@ class NFA:
             return NotImplemented
 
     @staticmethod
-    def from_string(string: str):
+    def from_string(string: str) -> "NFA":
         """
-        Construct an NFA `N` such that the language of `N`, denoted as `L(N)`, contains
-        only the given string.
+        Construct an NFA such that its language contains only the given string.
         """
         # object allocation guarantees unique states
         states = [object() for _ in range(len(string) + 1)]
@@ -69,6 +68,25 @@ class NFA:
             d[states[i], c] |= {states[i + 1]}
         q0 = states[0]
         F = {states[-1]}
+
+        return NFA((Q, S, d, q0, F))
+
+    @staticmethod
+    def from_alphabet(alphabet: set[str]) -> "NFA":
+        """
+        Construct an NFA such that its language is the given alphabet. The alphabet must
+        contain only single-character strings.
+        """
+        q0 = object()
+        states = {s: object() for s in alphabet}
+
+        Q = set(states.values()) | {q0}
+        S = set(alphabet)
+        d = {
+            (q, s): {states[s]} if q == q0 and s != "" else set()
+            for q, s in product(Q, S | {""})
+        }
+        F = set(states.values())
 
         return NFA((Q, S, d, q0, F))
 
