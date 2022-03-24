@@ -116,7 +116,7 @@ class NFA:
         for q in F1:
             d[q, ""] |= {q1}
         d[q0, ""] |= {q1}
-        F = F1
+        F = F1 | {q0}
 
         return NFA((Q, S, d, q0, F))
 
