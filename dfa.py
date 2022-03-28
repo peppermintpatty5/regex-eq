@@ -81,7 +81,7 @@ class DFA(NFA):
             visited = set(R)
 
             while queue:
-                q = queue.pop()
+                q = queue.popleft()
                 for r in d1[q, ""]:
                     if r not in visited:
                         queue.append(r)
@@ -95,7 +95,7 @@ class DFA(NFA):
         transitions = {}
 
         while queue:
-            subset = queue.pop()
+            subset = queue.popleft()
             for c in S1:
                 neighbors = E(set().union(*(d1[q, c] for q in subset)))
                 transitions[subset, c] = neighbors
@@ -165,7 +165,7 @@ class DFA(NFA):
         transitions = {}
 
         while queue:
-            x, y = pair = queue.pop()
+            x, y = pair = queue.popleft()
             for s in S:
                 (x_out,) = d1[x, s]
                 (y_out,) = d2[y, s]
@@ -190,7 +190,7 @@ class DFA(NFA):
     def union(self, other: "DFA") -> "DFA":
         """
         Construct a DFA `M` from `M1` and `M2` such that the language of M, denoted as
-        `L(M)`, is the intersection of `L(M1)` and `L(M2).`
+        `L(M)`, is the union of `L(M1)` and `L(M2).`
         """
         N1, N2 = self.N, other.N
         Q1, S1, d1, q1, F1 = N1
@@ -208,7 +208,7 @@ class DFA(NFA):
         transitions = {}
 
         while queue:
-            x, y = pair = queue.pop()
+            x, y = pair = queue.popleft()
             for s in S:
                 (x_out,) = d1[x, s]
                 (y_out,) = d2[y, s]
