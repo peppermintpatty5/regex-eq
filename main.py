@@ -1,18 +1,19 @@
 #!/usr/bin/env python3
 
+import sys
+
 from dfa import DFA
 from nfa import NFA
+from regular import Regular
 
 
-a = NFA.from_string("a")
-b = NFA.from_string("b")
-m1 = DFA.from_NFA(a + a.star() | b) & DFA.from_NFA(a | b + b.star())
-m2 = DFA.from_NFA(a | b)
-m = (m1 & ~m2) | (~m1 & m2)
+a = Regular(DFA.from_NFA(NFA.from_string("a")))
+b = Regular(DFA.from_NFA(NFA.from_string("b")))
+language = a + b  # TODO: fix symmetric difference a ^ b
 
-print(m1)
-print(m2)
-print(m)
+print(language.dfa, file=sys.stderr)
 
 while True:
-    print(m.accept(input()))
+    string = input()
+    if string in language:
+        print(string)

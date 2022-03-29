@@ -33,7 +33,7 @@ class DFA(NFA):
         Q, S, d, q0, F = self.N
 
         # associate states with human-readable numbers via enumeration
-        state_map = {q: i + 1 for i, q in enumerate(Q)}
+        state_map = {q: i for i, q in enumerate(Q, start=1)}
 
         return repr(
             (
@@ -48,21 +48,6 @@ class DFA(NFA):
                 {state_map[q] for q in F},
             )
         )
-
-    def __and__(self, other):
-        if isinstance(other, DFA):
-            return self.intersection(other)
-        else:
-            return NotImplemented
-
-    def __invert__(self):
-        return self.complement()
-
-    def __or__(self, other):
-        if isinstance(other, DFA):
-            return self.union(other)
-        else:
-            return NotImplemented
 
     @staticmethod
     def from_NFA(nfa: NFA) -> "DFA":

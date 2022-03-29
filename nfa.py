@@ -25,7 +25,7 @@ class NFA:
         Q, S, d, q0, F = self.N
 
         # associate states with human-readable numbers via enumeration
-        state_map = {q: i + 1 for i, q in enumerate(Q)}
+        state_map = {q: i for i, q in enumerate(Q, start=1)}
 
         return repr(
             (
@@ -40,18 +40,6 @@ class NFA:
                 {state_map[q] for q in F},
             )
         )
-
-    def __add__(self, other):
-        if isinstance(other, NFA):
-            return self.concat(other)
-        else:
-            return NotImplemented
-
-    def __or__(self, other):
-        if isinstance(other, NFA):
-            return self.union(other)
-        else:
-            return NotImplemented
 
     @staticmethod
     def from_string(string: str) -> "NFA":
@@ -93,7 +81,7 @@ class NFA:
     def concat(self, other: "NFA") -> "NFA":
         """
         Construct an NFA `N` from `N1` and `N2` such that the language of `N`, denoted
-        as `L(N)`, is the concatenation of `L(N1)` and `L(N2).
+        as `L(N)`, is the concatenation of `L(N1)` and `L(N2)`.
         """
         N1, N2 = self.N, other.N
         Q1, S1, d1, q1, F1 = N1
@@ -141,7 +129,7 @@ class NFA:
     def union(self, other: "NFA") -> "NFA":
         """
         Construct an NFA `N` from `N1` and `N2` such that the language of N, denoted as
-        `L(N)`, is the union of `L(N1)` and `L(N2).
+        `L(N)`, is the union of `L(N1)` and `L(N2)`.
         """
         N1, N2 = self.N, other.N
         Q1, S1, d1, q1, F1 = N1
