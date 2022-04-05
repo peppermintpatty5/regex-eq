@@ -153,7 +153,10 @@ class Parser:
             raise Exception("pushback error")
 
     def parse_expr(self) -> Optional[Node]:
-        term = self.parse_term()
+        term1 = self.parse_term()
+
+        if term1 is None:
+            return None
 
         while True:
             token, lexeme = self.next_token()
@@ -162,28 +165,28 @@ class Parser:
                 self.pushback_token((token, lexeme))
                 break
 
-            expr = self.parse_expr()
-            if expr is None:
+            term2 = self.parse_term()
+            if term2 is None:
                 raise Exception("missing expression after '|'")
 
-            term = Node("UNION", term, expr)
+            term1 = Node("UNION", term1, term2)
 
-        return term
+        return term1
 
     def parse_term(self) -> Optional[Node]:
-        factor = self.parse_factor()
+        factor1 = self.parse_factor()
 
-        if factor is None:
+        if factor1 is None:
             return None
 
         while True:
-            term = self.parse_term()
-            if term is None:
+            factor2 = self.parse_factor()
+            if factor2 is None:
                 break
             else:
-                factor = Node("CONCAT", factor, term)
+                factor1 = Node("CONCAT", factor1, factor2)
 
-        return factor
+        return factor1
 
     def parse_factor(self) -> Optional[Node]:
         token, lexeme = self.next_token()
