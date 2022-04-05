@@ -1,6 +1,6 @@
 from enum import Enum
 import sys
-from typing import Optional
+from typing import Optional, Union
 
 from dfa import DFA
 
@@ -75,12 +75,18 @@ class TokenType(Enum):
     ERROR = 11
 
 
+class Token:
+    def __init__(self, type: TokenType, lexeme: str) -> None:
+        self.type = type
+        self.lexeme = lexeme
+
+
 class Lexer:
     def __init__(self, input: str) -> None:
         self.index = 0
         self.input = input
 
-    def next_token(self) -> tuple[TokenType, str]:
+    def next_token(self) -> Token:
         class State(Enum):
             START = 0
             ESCAPE = 1
@@ -104,24 +110,32 @@ class Lexer:
                     "]": TokenType.R_BRACKET,
                 }
                 if c in unit_tokens:
-                    return (unit_tokens[c], c)
+                    return Token(unit_tokens[c], c)
                 elif c == "\\":
                     state = State.ESCAPE
                 elif c == "":  # end of string
-                    return (TokenType.END, c)
+                    return Token(TokenType.END, c)
                 else:
-                    return (TokenType.SYMBOL, c)
+                    return Token(TokenType.SYMBOL, c)
             elif state is State.ESCAPE:
                 if c == "":  # end of string
-                    return (TokenType.ERROR, c)
+                    return Token(TokenType.ERROR, c)
                 else:
-                    return (TokenType.SYMBOL, c)
+                    return Token(TokenType.SYMBOL, c)
+
+
+class Operator(Enum):
+    UNION = 0
+    CONCAT = 1
+    STAR = 2
+    PLUS = 3
+    QUESTION = 4
 
 
 class Node:
     def __init__(
         self,
-        val,
+        val: Union[Operator, Token],
         left: Optional["Node"] = None,
         right: Optional["Node"] = None,
     ) -> None:
@@ -136,9 +150,9 @@ class Node:
 class Parser:
     def __init__(self, input: str) -> None:
         self._lexer = Lexer(input)
-        self._pushback = None
+        self._pushback: Optional[Token] = None
 
-    def next_token(self) -> tuple[TokenType, str]:
+    def next_token(self) -> Token:
         if self._pushback is not None:
             x = self._pushback
             self._pushback = None
@@ -146,9 +160,9 @@ class Parser:
         else:
             return self._lexer.next_token()
 
-    def pushback_token(self, x: tuple[TokenType, str]) -> None:
+    def pushback_token(self, token: Token) -> None:
         if self._pushback is None:
-            self._pushback = x
+            self._pushback = token
         else:
             raise Exception("pushback error")
 
@@ -159,17 +173,17 @@ class Parser:
             return None
 
         while True:
-            token, lexeme = self.next_token()
+            token = self.next_token()
 
-            if token is not TokenType.UNION:
-                self.pushback_token((token, lexeme))
+            if token.type is not TokenType.UNION:
+                self.pushback_token(token)
                 break
 
             term2 = self.parse_term()
             if term2 is None:
                 raise Exception("missing expression after '|'")
 
-            term1 = Node("UNION", term1, term2)
+            term1 = Node(Operator.UNION, term1, term2)
 
         return term1
 
@@ -184,25 +198,25 @@ class Parser:
             if factor2 is None:
                 break
             else:
-                factor1 = Node("CONCAT", factor1, factor2)
+                factor1 = Node(Operator.CONCAT, factor1, factor2)
 
         return factor1
 
     def parse_factor(self) -> Optional[Node]:
-        token, lexeme = self.next_token()
+        token = self.next_token()
 
-        if token in (TokenType.SYMBOL, TokenType.DOT):
-            expr = Node((token, lexeme))
-        elif token is TokenType.L_PAREN:
+        if token.type in (TokenType.SYMBOL, TokenType.DOT):
+            expr = Node(token)
+        elif token.type is TokenType.L_PAREN:
             expr = self.parse_expr()
             if expr is None:
                 raise Exception("syntax error")
-            elif self.next_token()[0] is not TokenType.R_PAREN:
+            elif self.next_token().type is not TokenType.R_PAREN:
                 raise Exception("missing ')'")
             else:
                 expr = expr
         else:
-            self.pushback_token((token, lexeme))
+            self.pushback_token(token)
             return None
 
         while True:
@@ -216,16 +230,16 @@ class Parser:
         return expr
 
     def parse_exponent(self) -> Optional[Node]:
-        token, lexeme = self.next_token()
+        token = self.next_token()
 
-        if token is TokenType.STAR:
-            return Node("STAR")
-        elif token is TokenType.PLUS:
-            return Node("PLUS")
-        elif token is TokenType.QUESTION:
-            return Node("QUESTION")
+        if token.type is TokenType.STAR:
+            return Node(Operator.STAR)
+        elif token.type is TokenType.PLUS:
+            return Node(Operator.PLUS)
+        elif token.type is TokenType.QUESTION:
+            return Node(Operator.QUESTION)
         else:
-            self.pushback_token((token, lexeme))
+            self.pushback_token(token)
             return None
 
 
