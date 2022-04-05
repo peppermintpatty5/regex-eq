@@ -1,8 +1,10 @@
 from enum import Enum
+from string import printable
 import sys
 from typing import Optional, Union
 
 from dfa import DFA
+from nfa import NFA
 
 
 class Regular:
@@ -19,6 +21,18 @@ class Regular:
         Construct a regular language from a regular expression.
         """
         return NotImplemented
+
+    @staticmethod
+    def from_finite(language: set[str]) -> "Regular":
+        """
+        Construct a regular language from a finite language.
+        """
+        nfa = NFA.from_alphabet(set())
+
+        for string in language:
+            nfa = nfa.union(NFA.from_string(string))
+
+        return Regular(DFA.from_NFA(nfa))
 
     def __contains__(self, w):
         if isinstance(w, str):
@@ -146,6 +160,43 @@ class Node:
     def __repr__(self) -> str:
         return repr({k: v for k, v in self.__dict__.items() if v is not None})
 
+    def eval(self) -> Regular:
+
+        if type(self.val) is Operator:
+            operator = self.val
+
+            a = self.left.eval() if self.left is not None else None
+            b = self.right.eval() if self.right is not None else None
+
+            if a is None:
+                raise Exception("missing left operand")
+
+            if operator is Operator.UNION:
+                return a | b
+            elif operator is Operator.CONCAT:
+                return a + b
+            elif operator is Operator.STAR:
+                return Regular(DFA.from_NFA(a.dfa.star()))
+            elif operator is Operator.PLUS:
+                return a + Regular(DFA.from_NFA(a.dfa.star()))
+            elif operator is Operator.QUESTION:
+                return a | Regular.from_finite(set())
+            else:
+                raise Exception("invalid operator")
+
+        elif type(self.val) is Token:
+            token = self.val
+
+            if token.type is TokenType.SYMBOL:
+                return Regular.from_finite({token.lexeme})
+            elif token.type is TokenType.DOT:
+                return Regular.from_finite(set(printable))
+            else:
+                raise Exception("invalid operand")
+
+        else:
+            raise Exception("how did this happen?")
+
 
 class Parser:
     def __init__(self, input: str) -> None:
@@ -244,5 +295,9 @@ class Parser:
 
 
 if __name__ == "__main__":
-    parser = Parser(sys.argv[1])
-    print(parser.parse_expr())
+    language = Parser(sys.argv[1]).parse_expr().eval()
+
+    while True:
+        string = input()
+        if string in language:
+            print(string)
