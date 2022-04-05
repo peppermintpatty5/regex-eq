@@ -118,12 +118,12 @@ class Lexer:
                     return (TokenType.SYMBOL, c)
 
 
-class DAG:
+class Node:
     def __init__(
         self,
         val,
-        left: Optional["DAG"] = None,
-        right: Optional["DAG"] = None,
+        left: Optional["Node"] = None,
+        right: Optional["Node"] = None,
     ) -> None:
         self.val = val
         self.left = left
@@ -135,25 +135,25 @@ class DAG:
 
 class Parser:
     def __init__(self, input: str) -> None:
-        self.lexer = Lexer(input)
-        self.pushback = None
+        self._lexer = Lexer(input)
+        self._pushback = None
 
     def next_token(self) -> tuple[TokenType, str]:
-        if self.pushback is not None:
-            x = self.pushback
-            self.pushback = None
+        if self._pushback is not None:
+            x = self._pushback
+            self._pushback = None
             return x
         else:
-            return self.lexer.next_token()
+            return self._lexer.next_token()
 
     def pushback_token(self, x: tuple[TokenType, str]) -> None:
-        if self.pushback is None:
-            self.pushback = x
+        if self._pushback is None:
+            self._pushback = x
         else:
             raise Exception("pushback error")
 
-    def parse_regex(self) -> Optional[DAG]:
-        regex_branch = self.parse_term()
+    def parse_expr(self) -> Optional[Node]:
+        term = self.parse_term()
 
         while True:
             token, lexeme = self.next_token()
@@ -162,65 +162,65 @@ class Parser:
                 self.pushback_token((token, lexeme))
                 break
 
-            regex = self.parse_regex()
-            if regex is None:
+            expr = self.parse_expr()
+            if expr is None:
                 raise Exception("missing expression after '|'")
 
-            regex_branch = DAG("UNION", regex_branch, regex)
+            term = Node("UNION", term, expr)
 
-        return regex_branch
+        return term
 
-    def parse_term(self) -> Optional[DAG]:
-        expr = self.parse_expr()
+    def parse_term(self) -> Optional[Node]:
+        factor = self.parse_factor()
 
-        if expr is None:
+        if factor is None:
             return None
 
         while True:
-            regex_branch = self.parse_term()
-            if regex_branch is None:
+            term = self.parse_term()
+            if term is None:
                 break
             else:
-                expr = DAG("CONCAT", expr, regex_branch)
+                factor = Node("CONCAT", factor, term)
 
-        return expr
+        return factor
 
-    def parse_expr(self) -> Optional[DAG]:
+    def parse_factor(self) -> Optional[Node]:
         token, lexeme = self.next_token()
 
         if token in (TokenType.SYMBOL, TokenType.DOT):
-            expr = DAG(lexeme)
+            expr = Node((token, lexeme))
         elif token is TokenType.L_PAREN:
-            regex = self.parse_regex()
-            if regex is None:
+            expr = self.parse_expr()
+            if expr is None:
                 raise Exception("syntax error")
             elif self.next_token()[0] is not TokenType.R_PAREN:
                 raise Exception("missing ')'")
             else:
-                expr = regex
+                expr = expr
         else:
             self.pushback_token((token, lexeme))
             return None
 
         while True:
-            dup_symbol = self.parse_dup_symbol()
-            if dup_symbol is None:
+            exponent = self.parse_exponent()
+            if exponent is None:
                 break
             else:
-                dup_symbol.left = expr
-                expr = dup_symbol
+                exponent.left = expr
+                expr = exponent
 
         return expr
 
-    def parse_dup_symbol(self) -> Optional[DAG]:
+    def parse_exponent(self) -> Optional[Node]:
         token, lexeme = self.next_token()
 
         if token is TokenType.STAR:
-            return DAG("STAR")
+            return Node("STAR")
         elif token is TokenType.PLUS:
-            return DAG("PLUS")
+            return Node("PLUS")
         elif token is TokenType.QUESTION:
-            return DAG("QUESTION")
+            return Node("QUESTION")
         else:
             self.pushback_token((token, lexeme))
             return None
@@ -228,4 +228,4 @@ class Parser:
 
 if __name__ == "__main__":
     parser = Parser(sys.argv[1])
-    print(parser.parse_regex())
+    print(parser.parse_expr())
