@@ -97,8 +97,7 @@ class Token:
 
 class Lexer:
     def __init__(self, input: str) -> None:
-        self.index = 0
-        self.input = input
+        self._input = iter(input)
 
     def next_token(self) -> Token:
         class State(Enum):
@@ -108,8 +107,7 @@ class Lexer:
         state = State.START
 
         while True:
-            c = self.input[self.index] if self.index < len(self.input) else ""
-            self.index += 1
+            c = next(self._input, None)
 
             if state is State.START:
                 unit_tokens = {
@@ -123,17 +121,17 @@ class Lexer:
                     "[": TokenType.L_BRACKET,
                     "]": TokenType.R_BRACKET,
                 }
+                if c is None:
+                    return Token(TokenType.END, "")
                 if c in unit_tokens:
                     return Token(unit_tokens[c], c)
                 elif c == "\\":
                     state = State.ESCAPE
-                elif c == "":  # end of string
-                    return Token(TokenType.END, c)
                 else:
                     return Token(TokenType.SYMBOL, c)
             elif state is State.ESCAPE:
-                if c == "":  # end of string
-                    return Token(TokenType.ERROR, c)
+                if c is None:
+                    return Token(TokenType.ERROR, "")
                 else:
                     return Token(TokenType.SYMBOL, c)
 
