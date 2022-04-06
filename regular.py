@@ -78,23 +78,22 @@ class Regular:
             return NotImplemented
 
 
-class TokenType(Enum):
-    DOT = 0
-    STAR = 1
-    PLUS = 2
-    QUESTION = 3
-    UNION = 4
-    L_PAREN = 5
-    R_PAREN = 6
-    L_BRACKET = 7
-    R_BRACKET = 8
-    SYMBOL = 9
-    END = 10
-    ERROR = 11
-
-
 class Token:
-    def __init__(self, type: TokenType, lexeme: str) -> None:
+    class Type(Enum):
+        DOT = 0
+        STAR = 1
+        PLUS = 2
+        QUESTION = 3
+        UNION = 4
+        L_PAREN = 5
+        R_PAREN = 6
+        L_BRACKET = 7
+        R_BRACKET = 8
+        SYMBOL = 9
+        END = 10
+        ERROR = 11
+
+    def __init__(self, type: Type, lexeme: str) -> None:
         self.type = type
         self.lexeme = lexeme
 
@@ -115,29 +114,29 @@ class Lexer:
 
             if state is State.START:
                 unit_tokens = {
-                    ".": TokenType.DOT,
-                    "*": TokenType.STAR,
-                    "+": TokenType.PLUS,
-                    "?": TokenType.QUESTION,
-                    "|": TokenType.UNION,
-                    "(": TokenType.L_PAREN,
-                    ")": TokenType.R_PAREN,
-                    "[": TokenType.L_BRACKET,
-                    "]": TokenType.R_BRACKET,
+                    ".": Token.Type.DOT,
+                    "*": Token.Type.STAR,
+                    "+": Token.Type.PLUS,
+                    "?": Token.Type.QUESTION,
+                    "|": Token.Type.UNION,
+                    "(": Token.Type.L_PAREN,
+                    ")": Token.Type.R_PAREN,
+                    "[": Token.Type.L_BRACKET,
+                    "]": Token.Type.R_BRACKET,
                 }
                 if c is None:
-                    return Token(TokenType.END, "")
+                    return Token(Token.Type.END, "")
                 if c in unit_tokens:
                     return Token(unit_tokens[c], c)
                 elif c == "\\":
                     state = State.ESCAPE
                 else:
-                    return Token(TokenType.SYMBOL, c)
+                    return Token(Token.Type.SYMBOL, c)
             elif state is State.ESCAPE:
                 if c is None:
-                    return Token(TokenType.ERROR, "")
+                    return Token(Token.Type.ERROR, "")
                 else:
-                    return Token(TokenType.SYMBOL, c)
+                    return Token(Token.Type.SYMBOL, c)
 
 
 class Operator(Enum):
@@ -189,9 +188,9 @@ class Node:
         elif type(self.val) is Token:
             token = self.val
 
-            if token.type is TokenType.SYMBOL:
+            if token.type is Token.Type.SYMBOL:
                 return Regular.from_finite({token.lexeme})
-            elif token.type is TokenType.DOT:
+            elif token.type is Token.Type.DOT:
                 return Regular.from_finite(set(printable))
             else:
                 raise Exception("invalid operand")
@@ -232,7 +231,7 @@ class Parser:
         while True:
             token = self.next_token()
 
-            if token.type is not TokenType.UNION:
+            if token.type is not Token.Type.UNION:
                 self.pushback_token(token)
                 break
 
@@ -262,13 +261,13 @@ class Parser:
     def parse_factor(self) -> Optional[Node]:
         token = self.next_token()
 
-        if token.type in (TokenType.SYMBOL, TokenType.DOT):
+        if token.type in (Token.Type.SYMBOL, Token.Type.DOT):
             expr = Node(token)
-        elif token.type is TokenType.L_PAREN:
+        elif token.type is Token.Type.L_PAREN:
             expr = self.parse_expr()
             if expr is None:
                 raise Exception("syntax error")
-            elif self.next_token().type is not TokenType.R_PAREN:
+            elif self.next_token().type is not Token.Type.R_PAREN:
                 raise Exception("missing ')'")
             else:
                 expr = expr
@@ -289,11 +288,11 @@ class Parser:
     def parse_exponent(self) -> Optional[Node]:
         token = self.next_token()
 
-        if token.type is TokenType.STAR:
+        if token.type is Token.Type.STAR:
             return Node(Operator.STAR)
-        elif token.type is TokenType.PLUS:
+        elif token.type is Token.Type.PLUS:
             return Node(Operator.PLUS)
-        elif token.type is TokenType.QUESTION:
+        elif token.type is Token.Type.QUESTION:
             return Node(Operator.QUESTION)
         else:
             self.pushback_token(token)
