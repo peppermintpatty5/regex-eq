@@ -1,6 +1,5 @@
 from enum import Enum
 from string import printable
-import sys
 from typing import Optional, Union
 
 from dfa import DFA
@@ -20,7 +19,12 @@ class Regular:
         """
         Construct a regular language from a regular expression.
         """
-        return NotImplemented
+        tree = Parser(regex).parse_expr()
+
+        if tree is None:
+            return Regular.from_finite(set())
+        else:
+            return tree.eval()
 
     @staticmethod
     def from_finite(language: set[str]) -> "Regular":
@@ -197,6 +201,10 @@ class Node:
 
 
 class Parser:
+    """
+    Regular expression parser
+    """
+
     def __init__(self, input: str) -> None:
         self._lexer = Lexer(input)
         self._pushback: Optional[Token] = None
@@ -290,12 +298,3 @@ class Parser:
         else:
             self.pushback_token(token)
             return None
-
-
-if __name__ == "__main__":
-    language = Parser(sys.argv[1]).parse_expr().eval()
-
-    while True:
-        string = input()
-        if string in language:
-            print(string)

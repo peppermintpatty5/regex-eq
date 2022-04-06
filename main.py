@@ -2,18 +2,17 @@
 
 import sys
 
-from dfa import DFA
-from nfa import NFA
 from regular import Regular
 
 
-a = Regular(DFA.from_NFA(NFA.from_string("a")))
-b = Regular(DFA.from_NFA(NFA.from_string("b")))
-language = a + b  # TODO: fix symmetric difference a ^ b
+language = Regular.from_regex(sys.argv[1])
 
 print(language.dfa, file=sys.stderr)
 
-while True:
-    string = input()
-    if string in language:
-        print(string)
+try:
+    while True:
+        string = input()
+        if string in language:
+            print(string)
+except EOFError:
+    pass
