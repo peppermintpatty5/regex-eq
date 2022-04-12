@@ -77,6 +77,21 @@ class Regular:
         else:
             return NotImplemented
 
+    def __bool__(self):
+        return not self.dfa.is_empty()
+
+    def __eq__(self, other):
+        if isinstance(other, Regular):
+            return not self - other and not other - self
+        else:
+            return NotImplemented
+
+    def __lt__(self, other):
+        if isinstance(other, Regular):
+            return not self - other
+        else:
+            return NotImplemented
+
 
 class Token:
     class Type(Enum):
@@ -181,7 +196,7 @@ class Node:
             elif operator is Operator.PLUS:
                 return a + Regular(DFA.from_NFA(a.dfa.star()))
             elif operator is Operator.QUESTION:
-                return a | Regular.from_finite(set())
+                return a | Regular.from_finite({""})
             else:
                 raise Exception("invalid operator")
 

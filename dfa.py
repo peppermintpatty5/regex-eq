@@ -177,40 +177,13 @@ class DFA(NFA):
         Construct a DFA `M` from `M1` and `M2` such that the language of M, denoted as
         `L(M)`, is the union of `L(M1)` and `L(M2).`
         """
-        N1, N2 = self.N, other.N
-        Q1, S1, d1, q1, F1 = N1
-        Q2, S2, d2, q2, F2 = N2
+        return DFA.from_NFA(NFA.union(self, other))
 
-        # alphabets for both machines must be the same
-        if S1 == S2:
-            S = S1
-        else:
-            raise ValueError("alphabet mismatch")
+    def is_empty(self) -> bool:
+        """
+        Returns true if the language of the DFA is the empty language, false otherwise.
+        """
+        # FIXME: assumes all states are reachable
+        Q, S, d, q0, F = self.N
 
-        pair_start = (q1, q2)
-        queue = deque([pair_start])
-        pairs = {pair_start}
-        transitions = {}
-
-        while queue:
-            x, y = pair = queue.popleft()
-            for s in S:
-                (x_out,) = d1[x, s]
-                (y_out,) = d2[y, s]
-                pair_out = (x_out, y_out)
-                transitions[pair, s] = pair_out
-
-                if pair_out not in pairs:
-                    queue.append(pair_out)
-                    pairs.add(pair_out)
-
-        states = {pair: object() for pair in pairs}
-        Q = set(states.values())
-        d = {
-            (states[pair_in], s): states[pair_out]
-            for (pair_in, s), pair_out in transitions.items()
-        }
-        q0 = states[pair_start]
-        F = {states[x, y] for x, y in pairs if x in F1 or y in F2}
-
-        return DFA((Q, S, d, q0, F))
+        return F == set()
