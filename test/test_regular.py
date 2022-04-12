@@ -26,6 +26,21 @@ class TestRegular(unittest.TestCase):
         self.assertGreater(z, y)
         self.assertGreater(z, x)
 
+    def test_identities(self):
+        x = Regular.from_finite({"a"})
+        y = Regular.from_finite({""})
+        z = Regular.from_finite(set())
+
+        self.assertEqual(x + y, x)
+        self.assertEqual(x + z, z)
+
+    def test_distributive(self):
+        a = Regular.from_finite({"a"})
+        b = Regular.from_finite({"b"})
+        c = Regular.from_finite({"c"})
+
+        self.assertEqual(a + (b | c), a + b | a + c)
+
 
 if __name__ == "__main__":
     unittest.main()
