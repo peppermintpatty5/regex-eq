@@ -138,11 +138,7 @@ class DFA(NFA):
         Q1, S1, d1, q1, F1 = N1
         Q2, S2, d2, q2, F2 = N2
 
-        # alphabets for both machines must be the same
-        if S1 == S2:
-            S = S1
-        else:
-            raise ValueError("alphabet mismatch")
+        S = S1 | S2
 
         pair_start = (q1, q2)
         queue = deque([pair_start])
@@ -152,8 +148,8 @@ class DFA(NFA):
         while queue:
             x, y = pair = queue.popleft()
             for s in S:
-                (x_out,) = d1[x, s]
-                (y_out,) = d2[y, s]
+                (x_out,) = d1[x, s] if s in S1 else {None}
+                (y_out,) = d2[y, s] if s in S2 else {None}
                 pair_out = (x_out, y_out)
                 transitions[pair, s] = pair_out
 
