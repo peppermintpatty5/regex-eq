@@ -19,12 +19,7 @@ class Regular:
         """
         Construct a regular language from a regular expression.
         """
-        tree = Parser(regex).parse_expr()
-
-        if tree is None:
-            return Regular.from_finite(set())
-        else:
-            return tree.eval()
+        return Parser(regex).parse_expr().eval()
 
     @staticmethod
     def from_finite(language: set[str]) -> "Regular":
@@ -237,11 +232,11 @@ class Parser:
         else:
             raise Exception("pushback error")
 
-    def parse_expr(self) -> Optional[Node]:
+    def parse_expr(self) -> Node:
         term1 = self.parse_term()
 
         if term1 is None:
-            return None
+            raise Exception("missing term")
 
         while True:
             token = self.next_token()
