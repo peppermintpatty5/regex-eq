@@ -26,13 +26,21 @@ class TestRegular(unittest.TestCase):
         self.assertGreater(z, y)
         self.assertGreater(z, x)
 
-    def test_identities(self):
-        x = Regular.from_finite({"a"})
-        y = Regular.from_finite({""})
-        z = Regular.from_finite(set())
+    def test_identity(self):
+        a = Regular.from_finite({"a"})
+        aa = Regular.from_finite({"aa"})
+        empty_str = Regular.from_finite({""})
+        empty_lang = Regular.from_finite(set())
 
-        self.assertEqual(x + y, x)
-        self.assertEqual(x + z, z)
+        self.assertEqual(a | a, a)
+        self.assertEqual(a & a, a)
+        self.assertEqual(~(~a), a)
+
+        self.assertEqual(a + a, aa)
+        self.assertEqual(a - a, empty_lang)
+
+        self.assertEqual(a + empty_str, a)
+        self.assertEqual(a + empty_lang, empty_lang)
 
     def test_distributive(self):
         a = Regular.from_finite({"a"})
