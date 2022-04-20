@@ -36,14 +36,12 @@ class Regular:
     def __contains__(self, w):
         if isinstance(w, str):
             return self.dfa.accept(w)
-        else:
-            return NotImplemented
+        return NotImplemented
 
     def __and__(self, other):
         if isinstance(other, Regular):
             return Regular(self.dfa.intersection(other.dfa))
-        else:
-            return NotImplemented
+        return NotImplemented
 
     def __or__(self, other):
         if isinstance(other, Regular):
@@ -52,8 +50,7 @@ class Regular:
             except ValueError:
                 nfa = self.dfa.copy().union(other.dfa)
             return Regular(DFA.from_NFA(nfa))
-        else:
-            return NotImplemented
+        return NotImplemented
 
     def __invert__(self):
         return Regular(self.dfa.complement())
@@ -65,20 +62,17 @@ class Regular:
             except ValueError:
                 nfa = self.dfa.copy().concat(other.dfa)
             return Regular(DFA.from_NFA(nfa))
-        else:
-            return NotImplemented
+        return NotImplemented
 
     def __sub__(self, other):
         if isinstance(other, Regular):
             return self & ~other
-        else:
-            return NotImplemented
+        return NotImplemented
 
     def __xor__(self, other):
         if isinstance(other, Regular):
             return (self - other) | (other - self)
-        else:
-            return NotImplemented
+        return NotImplemented
 
     def __bool__(self):
         return not self.dfa.is_empty()
@@ -86,14 +80,12 @@ class Regular:
     def __eq__(self, other):
         if isinstance(other, Regular):
             return not self - other and not other - self
-        else:
-            return NotImplemented
+        return NotImplemented
 
     def __lt__(self, other):
         if isinstance(other, Regular):
             return not self - other
-        else:
-            return NotImplemented
+        return NotImplemented
 
 
 class Token:
@@ -117,8 +109,12 @@ class Token:
 
 
 class Lexer:
-    def __init__(self, input: str) -> None:
-        self._input = iter(input)
+    """
+    Regular expression lexical analyzer
+    """
+
+    def __init__(self, regex: str) -> None:
+        self._input = iter(regex)
 
     def next_token(self) -> Token:
         class State(Enum):
@@ -130,31 +126,41 @@ class Lexer:
         while True:
             c = next(self._input, None)
 
-            if state is State.START:
-                unit_tokens = {
-                    ".": Token.Type.DOT,
-                    "*": Token.Type.STAR,
-                    "+": Token.Type.PLUS,
-                    "?": Token.Type.QUESTION,
-                    "|": Token.Type.UNION,
-                    "(": Token.Type.L_PAREN,
-                    ")": Token.Type.R_PAREN,
-                    "[": Token.Type.L_BRACKET,
-                    "]": Token.Type.R_BRACKET,
-                }
-                if c is None:
-                    return Token(Token.Type.END, "")
-                if c in unit_tokens:
-                    return Token(unit_tokens[c], c)
-                elif c == "\\":
-                    state = State.ESCAPE
-                else:
-                    return Token(Token.Type.SYMBOL, c)
-            elif state is State.ESCAPE:
-                if c is None:
-                    return Token(Token.Type.ERROR, "")
-                else:
-                    return Token(Token.Type.SYMBOL, c)
+            match state:
+                case State.START:
+                    match c:
+                        case None:
+                            return Token(Token.Type.END, "")
+                        case ".":
+                            return Token(Token.Type.DOT, ".")
+                        case ".":
+                            return Token(Token.Type.DOT, ".")
+                        case "*":
+                            return Token(Token.Type.STAR, "*")
+                        case "+":
+                            return Token(Token.Type.PLUS, "+")
+                        case "?":
+                            return Token(Token.Type.QUESTION, "?")
+                        case "|":
+                            return Token(Token.Type.UNION, "|")
+                        case "(":
+                            return Token(Token.Type.L_PAREN, "(")
+                        case ")":
+                            return Token(Token.Type.R_PAREN, ")")
+                        case "[":
+                            return Token(Token.Type.L_BRACKET, "[")
+                        case "]":
+                            return Token(Token.Type.R_BRACKET, "]")
+                        case "\\":
+                            state = State.ESCAPE
+                        case _:
+                            return Token(Token.Type.SYMBOL, c)
+                case State.ESCAPE:
+                    match c:
+                        case None:
+                            return Token(Token.Type.ERROR, "")
+                        case _:
+                            return Token(Token.Type.SYMBOL, c)
 
 
 class Operator(Enum):
@@ -180,7 +186,6 @@ class Node:
         return repr({k: v for k, v in self.__dict__.items() if v is not None})
 
     def eval(self) -> Regular:
-
         if type(self.val) is Operator:
             operator = self.val
 
@@ -190,28 +195,30 @@ class Node:
             if a is None:
                 raise Exception("missing left operand")
 
-            if operator is Operator.UNION:
-                return a | b
-            elif operator is Operator.CONCAT:
-                return a + b
-            elif operator is Operator.STAR:
-                return Regular(DFA.from_NFA(a.dfa.star()))
-            elif operator is Operator.PLUS:
-                return a + Regular(DFA.from_NFA(a.dfa.star()))
-            elif operator is Operator.QUESTION:
-                return a | Regular.from_finite({""})
-            else:
-                raise Exception("invalid operator")
+            match operator:
+                case Operator.UNION:
+                    return a | b
+                case Operator.CONCAT:
+                    return a + b
+                case Operator.STAR:
+                    return Regular(DFA.from_NFA(a.dfa.star()))
+                case Operator.PLUS:
+                    return a + Regular(DFA.from_NFA(a.dfa.star()))
+                case Operator.QUESTION:
+                    return a | Regular.from_finite({""})
+                case _:
+                    raise ValueError("invalid operator")
 
         elif type(self.val) is Token:
             token = self.val
 
-            if token.type is Token.Type.SYMBOL:
-                return Regular.from_finite({token.lexeme})
-            elif token.type is Token.Type.DOT:
-                return Regular.from_finite(set(printable))
-            else:
-                raise Exception("invalid operand")
+            match token.type:
+                case Token.Type.SYMBOL:
+                    return Regular.from_finite({token.lexeme})
+                case Token.Type.DOT:
+                    return Regular.from_finite(set(printable))
+                case _:
+                    raise ValueError("invalid operand")
 
         else:
             raise Exception("how did this happen?")
@@ -222,8 +229,8 @@ class Parser:
     Regular expression parser
     """
 
-    def __init__(self, input: str) -> None:
-        self._lexer = Lexer(input)
+    def __init__(self, regex: str) -> None:
+        self._lexer = Lexer(regex)
         self._pushback: Optional[Token] = None
 
     def next_token(self) -> Token:
@@ -231,8 +238,7 @@ class Parser:
             x = self._pushback
             self._pushback = None
             return x
-        else:
-            return self._lexer.next_token()
+        return self._lexer.next_token()
 
     def pushback_token(self, token: Token) -> None:
         if self._pushback is None:
@@ -271,8 +277,7 @@ class Parser:
             factor2 = self.parse_factor()
             if factor2 is None:
                 break
-            else:
-                factor1 = Node(Operator.CONCAT, factor1, factor2)
+            factor1 = Node(Operator.CONCAT, factor1, factor2)
 
         return factor1
 
@@ -285,10 +290,8 @@ class Parser:
             expr = self.parse_expr()
             if expr is None:
                 raise Exception("syntax error")
-            elif self.next_token().type is not Token.Type.R_PAREN:
+            if self.next_token().type is not Token.Type.R_PAREN:
                 raise Exception("missing ')'")
-            else:
-                expr = expr
         else:
             self.pushback_token(token)
             return None
@@ -297,21 +300,22 @@ class Parser:
             exponent = self.parse_exponent()
             if exponent is None:
                 break
-            else:
-                exponent.left = expr
-                expr = exponent
+
+            exponent.left = expr
+            expr = exponent
 
         return expr
 
     def parse_exponent(self) -> Optional[Node]:
         token = self.next_token()
 
-        if token.type is Token.Type.STAR:
-            return Node(Operator.STAR)
-        elif token.type is Token.Type.PLUS:
-            return Node(Operator.PLUS)
-        elif token.type is Token.Type.QUESTION:
-            return Node(Operator.QUESTION)
-        else:
-            self.pushback_token(token)
-            return None
+        match token.type:
+            case Token.Type.STAR:
+                return Node(Operator.STAR)
+            case Token.Type.PLUS:
+                return Node(Operator.PLUS)
+            case Token.Type.QUESTION:
+                return Node(Operator.QUESTION)
+            case _:
+                self.pushback_token(token)
+                return None
