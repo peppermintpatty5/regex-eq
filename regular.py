@@ -47,7 +47,11 @@ class Regular:
 
     def __or__(self, other):
         if isinstance(other, Regular):
-            return Regular(self.dfa.union(other.dfa))
+            try:
+                nfa = self.dfa.union(other.dfa)
+            except ValueError:
+                nfa = self.dfa.copy().union(other.dfa)
+            return Regular(DFA.from_NFA(nfa))
         else:
             return NotImplemented
 
@@ -56,7 +60,11 @@ class Regular:
 
     def __add__(self, other):
         if isinstance(other, Regular):
-            return Regular(DFA.from_NFA(self.dfa.concat(other.dfa)))
+            try:
+                nfa = self.dfa.concat(other.dfa)
+            except ValueError:
+                nfa = self.dfa.copy().concat(other.dfa)
+            return Regular(DFA.from_NFA(nfa))
         else:
             return NotImplemented
 

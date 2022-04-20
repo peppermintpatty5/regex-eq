@@ -78,6 +78,25 @@ class NFA:
 
         return NFA((Q, S, d, q0, F))
 
+    def copy(self) -> "NFA":
+        """
+        Return a copy of the given NFA. The states in the copy are guaranteed to be
+        globally unique.
+        """
+        Q1, S1, d1, q1, F1 = self.N
+
+        new_states = {q: object() for q in Q1}
+        Q = set(new_states.values())
+        S = set(S1)
+        d = {
+            (new_states[q_in], s): {new_states[q] for q in q_out}
+            for (q_in, s), q_out in d1.items()
+        }
+        q0 = new_states[q1]
+        F = {new_states[q] for q in F1}
+
+        return NFA((Q, S, d, q0, F))
+
     def concat(self, other: "NFA") -> "NFA":
         """
         Construct an NFA `N` from `N1` and `N2` such that the language of `N`, denoted
@@ -86,6 +105,9 @@ class NFA:
         N1, N2 = self.N, other.N
         Q1, S1, d1, q1, F1 = N1
         Q2, S2, d2, q2, F2 = N2
+
+        if Q1 & Q2:
+            raise ValueError("states overlap")
 
         Q = Q1 | Q2
         S = S1 | S2
@@ -134,6 +156,9 @@ class NFA:
         N1, N2 = self.N, other.N
         Q1, S1, d1, q1, F1 = N1
         Q2, S2, d2, q2, F2 = N2
+
+        if Q1 & Q2:
+            raise ValueError("states overlap")
 
         q0 = object()
         Q = Q1 | Q2 | {q0}
