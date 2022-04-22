@@ -157,6 +157,17 @@ class Lexer:
             START = 0
             ESCAPE = 1
 
+        CHAR_TOKENS = {
+            ".": Token.Type.DOT,
+            "*": Token.Type.STAR,
+            "+": Token.Type.PLUS,
+            "?": Token.Type.QUESTION,
+            "|": Token.Type.UNION,
+            "(": Token.Type.L_PAREN,
+            ")": Token.Type.R_PAREN,
+            "[": Token.Type.L_BRACKET,
+            "]": Token.Type.R_BRACKET,
+        }
         state = State.START
 
         while True:
@@ -167,26 +178,8 @@ class Lexer:
                     match c:
                         case None:
                             return Token(Token.Type.END, "")
-                        case ".":
-                            return Token(Token.Type.DOT, ".")
-                        case ".":
-                            return Token(Token.Type.DOT, ".")
-                        case "*":
-                            return Token(Token.Type.STAR, "*")
-                        case "+":
-                            return Token(Token.Type.PLUS, "+")
-                        case "?":
-                            return Token(Token.Type.QUESTION, "?")
-                        case "|":
-                            return Token(Token.Type.UNION, "|")
-                        case "(":
-                            return Token(Token.Type.L_PAREN, "(")
-                        case ")":
-                            return Token(Token.Type.R_PAREN, ")")
-                        case "[":
-                            return Token(Token.Type.L_BRACKET, "[")
-                        case "]":
-                            return Token(Token.Type.R_BRACKET, "]")
+                        case _ if c in CHAR_TOKENS:
+                            return Token(CHAR_TOKENS[c], c)
                         case "\\":
                             state = State.ESCAPE
                         case _:
@@ -242,26 +235,27 @@ class Node:
 
             match operator:
                 case Node.Operator.UNION:
-                    return a | b
+                    lang = a | b
                 case Node.Operator.CONCAT:
-                    return a + b
+                    lang = a + b
                 case Node.Operator.STAR:
-                    return Regular(DFA.from_NFA(a.dfa.star()))
+                    lang = Regular(DFA.from_NFA(a.dfa.star()))
                 case Node.Operator.PLUS:
-                    return a + Regular(DFA.from_NFA(a.dfa.star()))
+                    lang = a + Regular(DFA.from_NFA(a.dfa.star()))
                 case Node.Operator.QUESTION:
-                    return a | Regular.from_finite({""})
+                    lang = a | Regular.from_finite({""})
                 case _:
                     raise ValueError("invalid operator")
         else:
             token = self.val
             match token.type:
                 case Token.Type.SYMBOL:
-                    return Regular.from_finite({token.lexeme})
+                    lang = Regular.from_finite({token.lexeme})
                 case Token.Type.DOT:
-                    return Regular.from_finite(set(printable))
+                    lang = Regular.from_finite(set(printable))
                 case _:
                     raise ValueError("invalid operand")
+        return lang
 
 
 class Parser:

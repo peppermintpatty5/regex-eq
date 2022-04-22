@@ -1,3 +1,7 @@
+"""
+Classes relating to deterministic finite automaton
+"""
+
 from collections import deque
 
 from nfa import NFA
@@ -54,8 +58,7 @@ class DFA(NFA):
         """
         Construct an equivalent DFA from an NFA.
         """
-        N1 = nfa.N
-        Q1, S1, d1, q1, F1 = N1
+        _, S1, d1, q1, F1 = nfa.N
 
         def E(R: set[object]) -> frozenset[object]:
             """
@@ -105,7 +108,7 @@ class DFA(NFA):
         """
         Return true if the DFA accepts the input string, false otherwise.
         """
-        Q, S, d, q0, F = self.N
+        _, _, d, q0, F = self.N
 
         q = q0
         for c in string:
@@ -118,8 +121,7 @@ class DFA(NFA):
         Construct a DFA `M` from `M1` such that the language of `M`, denoted as `L(M)`,
         is the complement of `L(M1)`.
         """
-        N1 = self.N
-        Q1, S1, d1, q1, F1 = N1
+        Q1, S1, d1, q1, F1 = self.N
 
         Q = Q1
         S = S1
@@ -134,9 +136,8 @@ class DFA(NFA):
         Construct a DFA `M` from `M1` and `M2` such that the language of M, denoted as
         `L(M)`, is the intersection of `L(M1)` and `L(M2).`
         """
-        N1, N2 = self.N, other.N
-        Q1, S1, d1, q1, F1 = N1
-        Q2, S2, d2, q2, F2 = N2
+        _, S1, d1, q1, F1 = self.N
+        _, S2, d2, q2, F2 = other.N
 
         S = S1 | S2
 
@@ -180,6 +181,6 @@ class DFA(NFA):
         Returns true if the language of the DFA is the empty language, false otherwise.
         """
         # FIXME: assumes all states are reachable
-        Q, S, d, q0, F = self.N
+        _, _, _, _, F = self.N
 
         return F == set()

@@ -1,3 +1,7 @@
+"""
+Classes relating to non-deterministic finite automaton
+"""
+
 from itertools import product
 
 
@@ -102,9 +106,8 @@ class NFA:
         Construct an NFA `N` from `N1` and `N2` such that the language of `N`, denoted
         as `L(N)`, is the concatenation of `L(N1)` and `L(N2)`.
         """
-        N1, N2 = self.N, other.N
-        Q1, S1, d1, q1, F1 = N1
-        Q2, S2, d2, q2, F2 = N2
+        Q1, S1, d1, q1, F1 = self.N
+        Q2, S2, d2, q2, F2 = other.N
 
         if Q1 & Q2:
             raise ValueError("states overlap")
@@ -131,8 +134,7 @@ class NFA:
         Construct an NFA `N` from `N1` such that the language of `N`, denoted as `L(N)`,
         is the Kleene star of `L(N1)`.
         """
-        N1 = self.N
-        Q1, S1, d1, q1, F1 = N1
+        Q1, S1, d1, q1, F1 = self.N
 
         q0 = object()
         Q = Q1 | {q0}
@@ -153,9 +155,8 @@ class NFA:
         Construct an NFA `N` from `N1` and `N2` such that the language of N, denoted as
         `L(N)`, is the union of `L(N1)` and `L(N2)`.
         """
-        N1, N2 = self.N, other.N
-        Q1, S1, d1, q1, F1 = N1
-        Q2, S2, d2, q2, F2 = N2
+        Q1, S1, d1, q1, F1 = self.N
+        Q2, S2, d2, q2, F2 = other.N
 
         if Q1 & Q2:
             raise ValueError("states overlap")
