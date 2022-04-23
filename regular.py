@@ -7,7 +7,6 @@ Classes relating to regular languages and regular expression parsing.
 from dataclasses import dataclass
 from enum import Enum
 from string import printable
-from typing import Optional, Union
 
 from dfa import DFA
 from nfa import NFA
@@ -210,9 +209,9 @@ class Node:
 
     def __init__(
         self,
-        val: Union[Operator, Token],
-        left: Optional["Node"] = None,
-        right: Optional["Node"] = None,
+        val: Operator | Token,
+        left: "Node" | None = None,
+        right: "Node" | None = None,
     ) -> None:
         self.val = val
         self.left = left
@@ -265,7 +264,7 @@ class Parser:
 
     def __init__(self, regex: str) -> None:
         self._lexer = Lexer(regex)
-        self._pushback: Optional[Token] = None
+        self._pushback: Token | None = None
 
     def _next_token(self) -> Token:
         if self._pushback is not None:
@@ -301,7 +300,7 @@ class Parser:
 
         return term1
 
-    def _parse_term(self) -> Optional[Node]:
+    def _parse_term(self) -> Node | None:
         factor1 = self._parse_factor()
 
         if factor1 is None:
@@ -315,7 +314,7 @@ class Parser:
 
         return factor1
 
-    def _parse_factor(self) -> Optional[Node]:
+    def _parse_factor(self) -> Node | None:
         token = self._next_token()
 
         if token.type in (Token.Type.SYMBOL, Token.Type.DOT):
@@ -340,7 +339,7 @@ class Parser:
 
         return expr
 
-    def _parse_exponent(self) -> Optional[Node]:
+    def _parse_exponent(self) -> Node | None:
         token = self._next_token()
 
         match token.type:
