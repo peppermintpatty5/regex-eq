@@ -13,6 +13,7 @@ class DFA(NFA):
     """
 
     def __init__(
+        # pylint: disable=duplicate-code
         self,
         tuple_def: tuple[
             set[object],
@@ -34,6 +35,7 @@ class DFA(NFA):
         super().__init__((Q, S, d, q0, F))
 
     def __repr__(self) -> str:
+        # pylint: disable=duplicate-code
         # associate states with human-readable numbers via enumeration
         state_map = {q: i for i, q in enumerate(self.Q, start=1)}
 
@@ -133,6 +135,7 @@ class DFA(NFA):
         Construct a DFA `M` from `M1` and `M2` such that the language of M, denoted as
         `L(M)`, is the intersection of `L(M1)` and `L(M2).`
         """
+        # pylint: disable=too-many-locals
         S = self.S | other.S
 
         pair_start = (self.q0, other.q0)
