@@ -12,7 +12,7 @@ class NFA:
 
     def __init__(
         self,
-        N: tuple[
+        tuple_def: tuple[
             set[object],
             set[str],
             dict[tuple[object, str], set[object]],
@@ -23,25 +23,23 @@ class NFA:
         """
         5-tuple definition of an NFA
         """
-        self.N = N
+        self.Q, self.S, self.d, self.q0, self.F = tuple_def
 
     def __repr__(self) -> str:
-        Q, S, d, q0, F = self.N
-
         # associate states with human-readable numbers via enumeration
-        state_map = {q: i for i, q in enumerate(Q, start=1)}
+        state_map = {q: i for i, q in enumerate(self.Q, start=1)}
 
         return repr(
             (
-                {state_map[q] for q in Q},
-                S,
+                {state_map[q] for q in self.Q},
+                self.S,
                 {
                     (state_map[q_in], c): {state_map[q] for q in q_out}
-                    for (q_in, c), q_out in d.items()
+                    for (q_in, c), q_out in self.d.items()
                     if q_out != set()
                 },
-                state_map[q0],
-                {state_map[q] for q in F},
+                state_map[self.q0],
+                {state_map[q] for q in self.F},
             )
         )
 
@@ -87,17 +85,16 @@ class NFA:
         Return a copy of the given NFA. The states in the copy are guaranteed to be
         globally unique.
         """
-        Q1, S1, d1, q1, F1 = self.N
+        new_states = {q: object() for q in self.Q}
 
-        new_states = {q: object() for q in Q1}
         Q = set(new_states.values())
-        S = set(S1)
+        S = set(self.S)
         d = {
             (new_states[q_in], s): {new_states[q] for q in q_out}
-            for (q_in, s), q_out in d1.items()
+            for (q_in, s), q_out in self.d.items()
         }
-        q0 = new_states[q1]
-        F = {new_states[q] for q in F1}
+        q0 = new_states[self.q0]
+        F = {new_states[q] for q in self.F}
 
         return NFA((Q, S, d, q0, F))
 
@@ -106,26 +103,23 @@ class NFA:
         Construct an NFA `N` from `N1` and `N2` such that the language of `N`, denoted
         as `L(N)`, is the concatenation of `L(N1)` and `L(N2)`.
         """
-        Q1, S1, d1, q1, F1 = self.N
-        Q2, S2, d2, q2, F2 = other.N
-
-        if Q1 & Q2:
+        if self.Q & other.Q:
             raise ValueError("states overlap")
 
-        Q = Q1 | Q2
-        S = S1 | S2
+        Q = self.Q | other.Q
+        S = self.S | other.S
         d = {
-            (q, c): set(d1[q, c])
-            if (q, c) in d1
-            else set(d2[q, c])
-            if (q, c) in d2
+            (q, c): set(self.d[q, c])
+            if (q, c) in self.d
+            else set(other.d[q, c])
+            if (q, c) in other.d
             else set()
             for q, c in product(Q, S | {""})
         }
-        for q in F1:
-            d[q, ""] |= {q2}
-        q0 = q1
-        F = F2
+        for q in self.F:
+            d[q, ""] |= {other.q0}
+        q0 = self.q0
+        F = other.F
 
         return NFA((Q, S, d, q0, F))
 
@@ -134,19 +128,17 @@ class NFA:
         Construct an NFA `N` from `N1` such that the language of `N`, denoted as `L(N)`,
         is the Kleene star of `L(N1)`.
         """
-        Q1, S1, d1, q1, F1 = self.N
-
         q0 = object()
-        Q = Q1 | {q0}
-        S = S1
+        Q = self.Q | {q0}
+        S = self.S
         d = {
-            (q, c): set(d1[q, c]) if (q, c) in d1 else set()
+            (q, c): set(self.d[q, c]) if (q, c) in self.d else set()
             for q, c in product(Q, S | {""})
         }
-        for q in F1:
-            d[q, ""] |= {q1}
-        d[q0, ""] |= {q1}
-        F = F1 | {q0}
+        for q in self.F:
+            d[q, ""] |= {self.q0}
+        d[q0, ""] |= {self.q0}
+        F = self.F | {q0}
 
         return NFA((Q, S, d, q0, F))
 
@@ -155,24 +147,21 @@ class NFA:
         Construct an NFA `N` from `N1` and `N2` such that the language of N, denoted as
         `L(N)`, is the union of `L(N1)` and `L(N2)`.
         """
-        Q1, S1, d1, q1, F1 = self.N
-        Q2, S2, d2, q2, F2 = other.N
-
-        if Q1 & Q2:
+        if self.Q & other.Q:
             raise ValueError("states overlap")
 
         q0 = object()
-        Q = Q1 | Q2 | {q0}
-        S = S1 | S2
+        Q = self.Q | other.Q | {q0}
+        S = self.S | other.S
         d = {
-            (q, c): set(d1[q, c])
-            if (q, c) in d1
-            else set(d2[q, c])
-            if (q, c) in d2
+            (q, c): set(self.d[q, c])
+            if (q, c) in self.d
+            else set(other.d[q, c])
+            if (q, c) in other.d
             else set()
             for q, c in product(Q, S | {""})
         }
-        d[q0, ""] |= {q1, q2}
-        F = F1 | F2
+        d[q0, ""] |= {self.q0, other.q0}
+        F = self.F | other.F
 
         return NFA((Q, S, d, q0, F))

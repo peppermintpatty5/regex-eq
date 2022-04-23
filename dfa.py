@@ -14,7 +14,7 @@ class DFA(NFA):
 
     def __init__(
         self,
-        M: tuple[
+        tuple_def: tuple[
             set[object],
             set[str],
             dict[tuple[object, str], object],
@@ -25,7 +25,7 @@ class DFA(NFA):
         """
         5-tuple definition of a DFA
         """
-        Q, S, d, q0, F = M
+        Q, S, d, q0, F = tuple_def
 
         d = {(q_in, c): {q_out} for (q_in, c), q_out in d.items()} | {
             (q, ""): set() for q in Q
@@ -34,22 +34,20 @@ class DFA(NFA):
         super().__init__((Q, S, d, q0, F))
 
     def __repr__(self) -> str:
-        Q, S, d, q0, F = self.N
-
         # associate states with human-readable numbers via enumeration
-        state_map = {q: i for i, q in enumerate(Q, start=1)}
+        state_map = {q: i for i, q in enumerate(self.Q, start=1)}
 
         return repr(
             (
-                {state_map[q] for q in Q},
-                S,
+                {state_map[q] for q in self.Q},
+                self.S,
                 {
                     (state_map[q_in], c): state_map[next(iter(q_out))]
-                    for (q_in, c), q_out in d.items()
+                    for (q_in, c), q_out in self.d.items()
                     if c != ""
                 },
-                state_map[q0],
-                {state_map[q] for q in F},
+                state_map[self.q0],
+                {state_map[q] for q in self.F},
             )
         )
 
@@ -58,7 +56,6 @@ class DFA(NFA):
         """
         Construct an equivalent DFA from an NFA.
         """
-        _, S1, d1, q1, F1 = nfa.N
 
         def E(R: set[object]) -> frozenset[object]:
             """
@@ -70,22 +67,22 @@ class DFA(NFA):
 
             while queue:
                 q = queue.popleft()
-                for r in d1[q, ""]:
+                for r in nfa.d[q, ""]:
                     if r not in visited:
                         queue.append(r)
                         visited.add(r)
 
             return frozenset(visited)
 
-        new_start = E({q1})
+        new_start = E({nfa.q0})
         queue = deque([new_start])
         subsets = {new_start}
         transitions = {}
 
         while queue:
             subset = queue.popleft()
-            for c in S1:
-                neighbors = E(set().union(*(d1[q, c] for q in subset)))
+            for c in nfa.S:
+                neighbors = E(set().union(*(nfa.d[q, c] for q in subset)))
                 transitions[subset, c] = neighbors
 
                 if neighbors not in subsets:
@@ -95,12 +92,12 @@ class DFA(NFA):
         # map subsets to plain states
         states = {subset: object() for subset in subsets}
         Q = set(states.values())
-        S = S1
+        S = nfa.S
         d = {
             (states[R_in], c): states[R_out] for (R_in, c), R_out in transitions.items()
         }
         q0 = states[new_start]
-        F = {states[R] for R in subsets if R & F1 != set()}
+        F = {states[R] for R in subsets if R & nfa.F != set()}
 
         return DFA((Q, S, d, q0, F))
 
@@ -108,26 +105,26 @@ class DFA(NFA):
         """
         Return true if the DFA accepts the input string, false otherwise.
         """
-        _, _, d, q0, F = self.N
-
-        q = q0
+        q = self.q0
         for c in string:
-            (q,) = d[q, c]
+            (q,) = self.d[q, c]
 
-        return q in F
+        return q in self.F
 
     def complement(self) -> "DFA":
         """
         Construct a DFA `M` from `M1` such that the language of `M`, denoted as `L(M)`,
         is the complement of `L(M1)`.
         """
-        Q1, S1, d1, q1, F1 = self.N
-
-        Q = Q1
-        S = S1
-        d = {(q_in, c): next(iter(q_out)) for (q_in, c), q_out in d1.items() if c != ""}
-        q0 = q1
-        F = Q - F1
+        Q = self.Q
+        S = self.S
+        d = {
+            (q_in, c): next(iter(q_out))
+            for (q_in, c), q_out in self.d.items()
+            if c != ""
+        }
+        q0 = self.q0
+        F = self.Q - self.F
 
         return DFA((Q, S, d, q0, F))
 
@@ -136,12 +133,9 @@ class DFA(NFA):
         Construct a DFA `M` from `M1` and `M2` such that the language of M, denoted as
         `L(M)`, is the intersection of `L(M1)` and `L(M2).`
         """
-        _, S1, d1, q1, F1 = self.N
-        _, S2, d2, q2, F2 = other.N
+        S = self.S | other.S
 
-        S = S1 | S2
-
-        pair_start = (q1, q2)
+        pair_start = (self.q0, other.q0)
         queue = deque([pair_start])
         pairs = {pair_start}
         transitions = {}
@@ -149,8 +143,8 @@ class DFA(NFA):
         while queue:
             x, y = pair = queue.popleft()
             for s in S:
-                (x_out,) = d1[x, s] if s in S1 else {None}
-                (y_out,) = d2[y, s] if s in S2 else {None}
+                (x_out,) = self.d[x, s] if s in self.S else {None}
+                (y_out,) = other.d[y, s] if s in other.S else {None}
                 pair_out = (x_out, y_out)
                 transitions[pair, s] = pair_out
 
@@ -165,7 +159,7 @@ class DFA(NFA):
             for (pair_in, s), pair_out in transitions.items()
         }
         q0 = states[pair_start]
-        F = {states[x, y] for x, y in pairs if x in F1 and y in F2}
+        F = {states[x, y] for x, y in pairs if x in self.F and y in other.F}
 
         return DFA((Q, S, d, q0, F))
 
@@ -180,7 +174,4 @@ class DFA(NFA):
         """
         Returns true if the language of the DFA is the empty language, false otherwise.
         """
-        # FIXME: assumes all states are reachable
-        _, _, _, _, F = self.N
-
-        return F == set()
+        return self.F == set()
