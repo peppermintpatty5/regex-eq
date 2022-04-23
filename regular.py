@@ -210,8 +210,8 @@ class Node:
     def __init__(
         self,
         val: Operator | Token,
-        left: "Node" | None = None,
-        right: "Node" | None = None,
+        left: "Node | None" = None,
+        right: "Node | None" = None,
     ) -> None:
         self.val = val
         self.left = left
