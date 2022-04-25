@@ -4,7 +4,7 @@ Classes relating to deterministic finite automaton
 
 from collections import deque
 
-from nfa import NFA
+from .nfa import NFA
 
 
 class DFA(NFA):

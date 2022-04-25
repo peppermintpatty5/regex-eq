@@ -8,8 +8,8 @@ from dataclasses import dataclass
 from enum import Enum
 from string import printable
 
-from dfa import DFA
-from nfa import NFA
+from .dfa import DFA
+from .nfa import NFA
 
 
 class Regular:
