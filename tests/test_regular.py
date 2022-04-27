@@ -1,6 +1,6 @@
 import unittest
 
-from regular import Regular
+from regular.regular import Regular
 
 
 class TestRegular(unittest.TestCase):

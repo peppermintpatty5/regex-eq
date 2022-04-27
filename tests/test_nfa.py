@@ -1,6 +1,6 @@
 import unittest
 
-from nfa import NFA
+from regular.nfa import NFA
 
 
 class TestNFA(unittest.TestCase):
