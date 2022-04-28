@@ -1,9 +1,10 @@
-#!/usr/bin/env python3
-# pylint: skip-file
+"""
+Command-line tool similar to grep
+"""
 
 import sys
 
-from regular import Regular
+from .regular import Regular
 
 
 language = Regular.from_regex(sys.argv[1])

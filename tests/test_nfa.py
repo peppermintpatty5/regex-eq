@@ -1,9 +1,17 @@
+"""
+Unit tests for module `regular.nfa`
+"""
+
 import unittest
 
-from nfa import NFA
+from regular.nfa import NFA
 
 
 class TestNFA(unittest.TestCase):
+    """
+    Test cases for class `NFA`
+    """
+
     def test_overlapping_states(self):
         """
         The operations for union and concatenation cannot be performed if the NFAs have

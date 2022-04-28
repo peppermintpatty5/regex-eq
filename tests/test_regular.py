@@ -1,10 +1,21 @@
+"""
+Unit tests for module `regular.regular`
+"""
+
 import unittest
 
-from regular import Regular
+from regular.regular import Regular
 
 
 class TestRegular(unittest.TestCase):
+    """
+    Test cases for class `Regular`
+    """
+
     def test_equal(self):
+        """
+        Test if one language is equal to another
+        """
         x = Regular.from_regex(r"a+")
         y = Regular.from_regex(r"aa*")
         z = Regular.from_regex(r"a*")
@@ -14,6 +25,9 @@ class TestRegular(unittest.TestCase):
         self.assertNotEqual(y, z)
 
     def test_subset(self):
+        """
+        Test if one language is a subset of another
+        """
         x = Regular.from_regex(r"a")
         y = Regular.from_regex(r"a?")
         z = Regular.from_regex(r"a*")
@@ -27,6 +41,9 @@ class TestRegular(unittest.TestCase):
         self.assertGreater(z, x)
 
     def test_identity(self):
+        """
+        Test various language identities
+        """
         a = Regular.from_finite({"a"})
         aa = Regular.from_finite({"aa"})
         empty_str = Regular.from_finite({""})
@@ -43,6 +60,9 @@ class TestRegular(unittest.TestCase):
         self.assertEqual(a + empty_lang, empty_lang)
 
     def test_distributive(self):
+        """
+        Concatenation distributes over union
+        """
         a = Regular.from_finite({"a"})
         b = Regular.from_finite({"b"})
         c = Regular.from_finite({"c"})
