@@ -172,9 +172,3 @@ class DFA(NFA):
         `L(M)`, is the union of `L(M1)` and `L(M2).`
         """
         return DFA.from_NFA(NFA.union(self, other))
-
-    def is_empty(self) -> bool:
-        """
-        Returns true if the language of the DFA is the empty language, false otherwise.
-        """
-        return self.F == set()

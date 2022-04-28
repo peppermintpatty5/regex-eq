@@ -2,6 +2,7 @@
 Classes relating to non-deterministic finite automaton
 """
 
+from collections import deque
 from itertools import product
 
 
@@ -42,6 +43,19 @@ class NFA:
                 {state_map[q] for q in self.F},
             )
         )
+
+    def __iter__(self):
+        queue = deque([self.q0])
+        visited = {self.q0}
+
+        while queue:
+            q = queue.popleft()
+            for s in self.S | {""}:
+                for q_out in self.d.get((q, s), set()):
+                    if q_out not in visited:
+                        queue.append(q_out)
+                        visited.add(q_out)
+            yield q
 
     @staticmethod
     def from_string(string: str) -> "NFA":
@@ -165,3 +179,9 @@ class NFA:
         F = self.F | other.F
 
         return NFA((Q, S, d, q0, F))
+
+    def is_empty(self) -> bool:
+        """
+        Returns true if the language of the DFA is the empty language, false otherwise.
+        """
+        return not any(q in self.F for q in self)
