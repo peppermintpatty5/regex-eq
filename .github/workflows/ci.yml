@@ -24,4 +24,4 @@ jobs:
       - name: Install dependencies
         run: pip install pylint
       - name: Analyze code with Pylint
-        run: pylint src/
+        run: pylint src/ tests/
