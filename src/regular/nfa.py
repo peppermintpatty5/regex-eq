@@ -165,3 +165,9 @@ class NFA:
         F = self.F | other.F
 
         return NFA((Q, S, d, q0, F))
+
+    def is_empty(self) -> bool:
+        """
+        Returns true if the language of the DFA is the empty language, false otherwise.
+        """
+        return self.F == set()
