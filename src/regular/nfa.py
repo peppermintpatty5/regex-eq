@@ -23,6 +23,13 @@ class NFA:
     ) -> None:
         """
         5-tuple definition of an NFA
+
+        Empty transitions may be omitted. For example, the following transition
+        dictionaries `d1` and `d2` are logically equivalent.
+        ```
+        d1 = {(q1, s): set()}
+        d2 = {}
+        ```
         """
         self.Q, self.S, self._d, self.q0, self.F = tuple_def
 
@@ -67,9 +74,7 @@ class NFA:
 
         Q = set(states)
         S = set(string)
-        d = {(q, c): set() for q, c in product(Q, S | {""})}
-        for i, c in enumerate(string):
-            d[states[i], c] |= {states[i + 1]}
+        d = {(states[i], s): {states[i + 1]} for i, s in enumerate(string)}
         q0 = states[0]
         F = {states[-1]}
 
@@ -86,10 +91,7 @@ class NFA:
 
         Q = set(states.values()) | {q0}
         S = set(alphabet)
-        d = {
-            (q, s): {states[s]} if q == q0 and s != "" else set()
-            for q, s in product(Q, S | {""})
-        }
+        d = {(q0, s): states[s] for s in alphabet}
         F = set(states.values())
 
         return NFA((Q, S, d, q0, F))

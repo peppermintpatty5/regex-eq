@@ -28,9 +28,7 @@ class DFA(NFA):
         """
         Q, S, d, q0, F = tuple_def
 
-        d = {(q_in, c): {q_out} for (q_in, c), q_out in d.items()} | {
-            (q, ""): set() for q in Q
-        }
+        d = {(q_in, s): {q_out} for (q_in, s), q_out in d.items()}
 
         super().__init__((Q, S, d, q0, F))
 
@@ -44,9 +42,9 @@ class DFA(NFA):
                 {state_map[q] for q in self.Q},
                 self.S,
                 {
-                    (state_map[q_in], c): state_map[next(iter(q_out))]
-                    for (q_in, c), q_out in self._d.items()
-                    if c != ""
+                    (state_map[q_in], s): state_map[next(iter(q_out))]
+                    for (q_in, s), q_out in self._d.items()
+                    if s != ""
                 },
                 state_map[self.q0],
                 {state_map[q] for q in self.F},
@@ -96,7 +94,7 @@ class DFA(NFA):
         Q = set(states.values())
         S = nfa.S
         d = {
-            (states[R_in], c): states[R_out] for (R_in, c), R_out in transitions.items()
+            (states[R_in], s): states[R_out] for (R_in, s), R_out in transitions.items()
         }
         q0 = states[new_start]
         F = {states[R] for R in subsets if R & nfa.F != set()}
@@ -120,11 +118,7 @@ class DFA(NFA):
         """
         Q = self.Q
         S = self.S
-        d = {
-            (q_in, c): next(iter(q_out))
-            for (q_in, c), q_out in self._d.items()
-            if c != ""
-        }
+        d = {(q_in, s): next(iter(q_out)) for (q_in, s), q_out in self._d.items()}
         q0 = self.q0
         F = self.Q - self.F
 
