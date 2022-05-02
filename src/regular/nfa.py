@@ -24,7 +24,7 @@ class NFA:
         """
         5-tuple definition of an NFA
         """
-        self.Q, self.S, self.d, self.q0, self.F = tuple_def
+        self.Q, self.S, self._d, self.q0, self.F = tuple_def
 
     def __repr__(self) -> str:
         # associate states with human-readable numbers via enumeration
@@ -35,8 +35,8 @@ class NFA:
                 {state_map[q] for q in self.Q},
                 self.S,
                 {
-                    (state_map[q_in], c): {state_map[q] for q in q_out}
-                    for (q_in, c), q_out in self.d.items()
+                    (state_map[q_in], s): {state_map[q] for q in q_out}
+                    for (q_in, s), q_out in self._d.items()
                     if q_out != set()
                 },
                 state_map[self.q0],
@@ -51,7 +51,7 @@ class NFA:
         while queue:
             q = queue.popleft()
             for s in self.S | {""}:
-                for q_out in self.d.get((q, s), set()):
+                for q_out in self.d(q, s):
                     if q_out not in visited:
                         queue.append(q_out)
                         visited.add(q_out)
@@ -94,6 +94,12 @@ class NFA:
 
         return NFA((Q, S, d, q0, F))
 
+    def d(self, q: object, s: str) -> set[object]:
+        """
+        Get the set of output states for the given input state and symbol.
+        """
+        return self._d[q, s] if (q, s) in self._d else set()
+
     def copy(self) -> "NFA":
         """
         Return a copy of the given NFA. The states in the copy are guaranteed to be
@@ -105,7 +111,7 @@ class NFA:
         S = set(self.S)
         d = {
             (new_states[q_in], s): {new_states[q] for q in q_out}
-            for (q_in, s), q_out in self.d.items()
+            for (q_in, s), q_out in self._d.items()
         }
         q0 = new_states[self.q0]
         F = {new_states[q] for q in self.F}
@@ -122,14 +128,7 @@ class NFA:
 
         Q = self.Q | other.Q
         S = self.S | other.S
-        d = {
-            (q, c): set(self.d[q, c])
-            if (q, c) in self.d
-            else set(other.d[q, c])
-            if (q, c) in other.d
-            else set()
-            for q, c in product(Q, S | {""})
-        }
+        d = {(q, s): self.d(q, s) | other.d(q, s) for q, s in product(Q, S | {""})}
         for q in self.F:
             d[q, ""] |= {other.q0}
         q0 = self.q0
@@ -145,10 +144,7 @@ class NFA:
         q0 = object()
         Q = self.Q | {q0}
         S = self.S
-        d = {
-            (q, c): set(self.d[q, c]) if (q, c) in self.d else set()
-            for q, c in product(Q, S | {""})
-        }
+        d = {(q, s): set(self.d(q, s)) for q, s in product(Q, S | {""})}
         for q in self.F:
             d[q, ""] |= {self.q0}
         d[q0, ""] |= {self.q0}
@@ -167,14 +163,7 @@ class NFA:
         q0 = object()
         Q = self.Q | other.Q | {q0}
         S = self.S | other.S
-        d = {
-            (q, c): set(self.d[q, c])
-            if (q, c) in self.d
-            else set(other.d[q, c])
-            if (q, c) in other.d
-            else set()
-            for q, c in product(Q, S | {""})
-        }
+        d = {(q, s): self.d(q, s) | other.d(q, s) for q, s in product(Q, S | {""})}
         d[q0, ""] |= {self.q0, other.q0}
         F = self.F | other.F
 

@@ -45,7 +45,7 @@ class DFA(NFA):
                 self.S,
                 {
                     (state_map[q_in], c): state_map[next(iter(q_out))]
-                    for (q_in, c), q_out in self.d.items()
+                    for (q_in, c), q_out in self._d.items()
                     if c != ""
                 },
                 state_map[self.q0],
@@ -69,7 +69,7 @@ class DFA(NFA):
 
             while queue:
                 q = queue.popleft()
-                for r in nfa.d[q, ""]:
+                for r in nfa.d(q, ""):
                     if r not in visited:
                         queue.append(r)
                         visited.add(r)
@@ -83,9 +83,9 @@ class DFA(NFA):
 
         while queue:
             subset = queue.popleft()
-            for c in nfa.S:
-                neighbors = E(set().union(*(nfa.d[q, c] for q in subset)))
-                transitions[subset, c] = neighbors
+            for s in nfa.S:
+                neighbors = E(set().union(*(nfa.d(q, s) for q in subset)))
+                transitions[subset, s] = neighbors
 
                 if neighbors not in subsets:
                     queue.append(neighbors)
@@ -108,8 +108,8 @@ class DFA(NFA):
         Return true if the DFA accepts the input string, false otherwise.
         """
         q = self.q0
-        for c in string:
-            (q,) = self.d[q, c]
+        for s in string:
+            (q,) = self.d(q, s)
 
         return q in self.F
 
@@ -122,7 +122,7 @@ class DFA(NFA):
         S = self.S
         d = {
             (q_in, c): next(iter(q_out))
-            for (q_in, c), q_out in self.d.items()
+            for (q_in, c), q_out in self._d.items()
             if c != ""
         }
         q0 = self.q0
@@ -146,8 +146,8 @@ class DFA(NFA):
         while queue:
             x, y = pair = queue.popleft()
             for s in S:
-                (x_out,) = self.d[x, s] if s in self.S else {None}
-                (y_out,) = other.d[y, s] if s in other.S else {None}
+                (x_out,) = self.d(x, s) if s in self.S else {None}
+                (y_out,) = other.d(y, s) if s in other.S else {None}
                 pair_out = (x_out, y_out)
                 transitions[pair, s] = pair_out
 
