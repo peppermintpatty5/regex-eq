@@ -43,7 +43,7 @@ class DFA(NFA):
                 self.S,
                 {
                     (state_map[q_in], s): state_map[next(iter(q_out))]
-                    for (q_in, s), q_out in self._d.items()
+                    for (q_in, s), q_out in self.d_mat.items()
                     if s != ""
                 },
                 state_map[self.q0],
@@ -118,7 +118,7 @@ class DFA(NFA):
         """
         Q = self.Q
         S = self.S
-        d = {(q_in, s): next(iter(q_out)) for (q_in, s), q_out in self._d.items()}
+        d = {(q_in, s): next(iter(q_out)) for (q_in, s), q_out in self.d_mat.items()}
         q0 = self.q0
         F = self.Q - self.F
 
