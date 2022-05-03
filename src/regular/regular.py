@@ -45,10 +45,8 @@ class Regular:
         """
         Construct a regular language from a finite language.
         """
-        nfa = NFA.from_alphabet(set())
-
-        for string in language:
-            nfa = nfa.union(NFA.from_string(string))
+        nfa = NFA.empty()
+        nfa.update_union(*(NFA.from_string(string) for string in language))
 
         return Regular(DFA.from_NFA(nfa))
 
@@ -59,27 +57,34 @@ class Regular:
 
     def __and__(self, other):
         if isinstance(other, Regular):
-            return Regular(self.dfa.intersection(other.dfa))
+            return Regular(DFA.intersection(self, other))
         return NotImplemented
 
     def __or__(self, other):
         if isinstance(other, Regular):
-            try:
-                nfa = self.dfa.union(other.dfa)
-            except ValueError:
-                nfa = self.dfa.copy().union(other.dfa)
+            nfa = NFA.empty()
+
+            if self.dfa is other.dfa:
+                nfa.update_union(self.dfa, self.dfa.copy())
+            else:
+                nfa.update_union(self.dfa, other.dfa)
             return Regular(DFA.from_NFA(nfa))
         return NotImplemented
 
     def __invert__(self):
-        return Regular(self.dfa.complement())
+        dfa = DFA.from_NFA(self.dfa)
+        dfa.update_complement()
+
+        return Regular(dfa)
 
     def __add__(self, other):
         if isinstance(other, Regular):
-            try:
-                nfa = self.dfa.concat(other.dfa)
-            except ValueError:
-                nfa = self.dfa.copy().concat(other.dfa)
+            nfa = NFA.empty()
+
+            if self.dfa is other.dfa:
+                nfa.update_concat(self.dfa, self.dfa.copy())
+            else:
+                nfa.update_concat(self.dfa, other.dfa)
             return Regular(DFA.from_NFA(nfa))
         return NotImplemented
 
@@ -238,9 +243,9 @@ class Node:
                 case Node.Operator.CONCAT:
                     lang = a + b
                 case Node.Operator.STAR:
-                    lang = Regular(DFA.from_NFA(a.dfa.star()))
+                    lang = Regular(DFA.from_NFA(a.dfa.update_star()))
                 case Node.Operator.PLUS:
-                    lang = a + Regular(DFA.from_NFA(a.dfa.star()))
+                    lang = a + Regular(DFA.from_NFA(a.dfa.update_star()))
                 case Node.Operator.QUESTION:
                     lang = a | Regular.from_finite({""})
                 case _:

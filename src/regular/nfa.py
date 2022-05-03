@@ -63,6 +63,15 @@ class NFA:
             yield q
 
     @staticmethod
+    def empty() -> "NFA":
+        """
+        Construct an NFA such that its language is the empty language.
+        """
+        q1 = object()
+
+        return NFA(({q1}, set(), {}, q1, set()))
+
+    @staticmethod
     def from_string(string: str) -> "NFA":
         """
         Construct an NFA such that its language contains only the given string.
@@ -108,7 +117,7 @@ class NFA:
 
         return NFA((Q, S, d, q0, F))
 
-    def concat(self, *others: "NFA") -> None:
+    def update_concat(self, *others: "NFA") -> None:
         """
         Update an NFA with the concatenation of itself and others.
         """
@@ -118,11 +127,12 @@ class NFA:
 
             self.Q |= other.Q
             self.S |= other.S
+            self.d_mat |= other.d_mat
             for q in self.F:
                 self._add_transition(q, "", other.q0)
-            self.F = other.F
+            self.F = set(other.F)
 
-    def star(self) -> None:
+    def update_star(self) -> None:
         """
         Update an NFA with the Kleene star of itself.
         """
@@ -133,8 +143,9 @@ class NFA:
             self._add_transition(q, "", self.q0)
         self._add_transition(q0, "", self.q0)
         self.F.add(q0)
+        self.q0 = q0
 
-    def union(self, *others: "NFA") -> None:
+    def update_union(self, *others: "NFA") -> None:
         """
         Update an NFA with the union of itself and others.
         """

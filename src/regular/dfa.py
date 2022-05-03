@@ -13,7 +13,6 @@ class DFA(NFA):
     """
 
     def __init__(
-        # pylint: disable=duplicate-code
         self,
         tuple_def: tuple[
             set[object],
@@ -101,6 +100,63 @@ class DFA(NFA):
 
         return DFA((Q, S, d, q0, F))
 
+    @staticmethod
+    def intersection(*dfas: "DFA") -> "DFA":
+        """
+        Construct a DFA that is the intersection of multiple DFAs.
+        """
+        S = set().union(*(dfa.S for dfa in dfas))
+
+        start = tuple(dfa.q0 for dfa in dfas)
+        queue = deque([start])
+        visited = {start}
+        transitions = {}
+
+        while queue:
+            state = queue.popleft()
+            for s in S:
+                next_state = tuple(
+                    next(iter(dfa.d(q, s)), None) for dfa, q in zip(dfas, state)
+                )
+                transitions[state, s] = next_state
+
+                if next_state not in visited:
+                    queue.append(next_state)
+                    visited.add(next_state)
+
+        state_map = {state: object() for state in visited}
+        Q = set(visited)
+        d = {
+            (state_map[state], s): state_map[next_state]
+            for (state, s), next_state in transitions.items()
+        }
+        q0 = state_map[start]
+        F = {
+            state_map[state]
+            for state in visited
+            if all(q in dfa.F for dfa, q in zip(dfas, state))
+        }
+
+        return DFA((Q, S, d, q0, F))
+
+    def copy(self) -> "NFA":
+        """
+        Return a copy of the given DFA. The states in the copy are guaranteed to be
+        globally unique.
+        """
+        new_states = {q: object() for q in self.Q}
+
+        Q = set(new_states.values())
+        S = set(self.S)
+        d = {
+            (new_states[q_in], s): new_states[next(iter(q_out))]
+            for (q_in, s), q_out in self.d_mat.items()
+        }
+        q0 = new_states[self.q0]
+        F = {new_states[q] for q in self.F}
+
+        return DFA((Q, S, d, q0, F))
+
     def accept(self, string: str) -> bool:
         """
         Return true if the DFA accepts the input string, false otherwise.
@@ -111,58 +167,8 @@ class DFA(NFA):
 
         return q in self.F
 
-    def complement(self) -> "DFA":
+    def update_complement(self) -> None:
         """
-        Construct a DFA `M` from `M1` such that the language of `M`, denoted as `L(M)`,
-        is the complement of `L(M1)`.
+        Update a DFA with the complement of itself.
         """
-        Q = self.Q
-        S = self.S
-        d = {(q_in, s): next(iter(q_out)) for (q_in, s), q_out in self.d_mat.items()}
-        q0 = self.q0
-        F = self.Q - self.F
-
-        return DFA((Q, S, d, q0, F))
-
-    def intersection(self, other: "DFA") -> "DFA":
-        """
-        Construct a DFA `M` from `M1` and `M2` such that the language of M, denoted as
-        `L(M)`, is the intersection of `L(M1)` and `L(M2).`
-        """
-        # pylint: disable=too-many-locals
-        S = self.S | other.S
-
-        pair_start = (self.q0, other.q0)
-        queue = deque([pair_start])
-        pairs = {pair_start}
-        transitions = {}
-
-        while queue:
-            x, y = pair = queue.popleft()
-            for s in S:
-                (x_out,) = self.d(x, s) if s in self.S else {None}
-                (y_out,) = other.d(y, s) if s in other.S else {None}
-                pair_out = (x_out, y_out)
-                transitions[pair, s] = pair_out
-
-                if pair_out not in pairs:
-                    queue.append(pair_out)
-                    pairs.add(pair_out)
-
-        states = {pair: object() for pair in pairs}
-        Q = set(states.values())
-        d = {
-            (states[pair_in], s): states[pair_out]
-            for (pair_in, s), pair_out in transitions.items()
-        }
-        q0 = states[pair_start]
-        F = {states[x, y] for x, y in pairs if x in self.F and y in other.F}
-
-        return DFA((Q, S, d, q0, F))
-
-    def union(self, other: "DFA") -> "DFA":
-        """
-        Construct a DFA `M` from `M1` and `M2` such that the language of M, denoted as
-        `L(M)`, is the union of `L(M1)` and `L(M2).`
-        """
-        return DFA.from_NFA(NFA.union(self, other))
+        self.F = self.Q - self.F

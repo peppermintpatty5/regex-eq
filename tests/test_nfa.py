@@ -22,8 +22,8 @@ class TestNFA(unittest.TestCase):
         a = NFA(({q1, q2}, {"a"}, {(q1, "a"): {q2}}, q1, {q2}))
         b = NFA(({q1, q2}, {"b"}, {(q1, "b"): {q2}}, q1, {q2}))
 
-        self.assertRaises(ValueError, a.concat, b)
-        self.assertRaises(ValueError, a.union, b)
+        self.assertRaises(ValueError, a.update_concat, b)
+        self.assertRaises(ValueError, a.update_union, b)
 
     def test_emptiness(self):
         """
@@ -39,6 +39,8 @@ class TestNFA(unittest.TestCase):
         self.assertTrue(n1.is_empty())
         self.assertTrue(n2.is_empty())
         self.assertFalse(n3.is_empty())
+
+        self.assertTrue(NFA.empty().is_empty())
 
 
 if __name__ == "__main__":
