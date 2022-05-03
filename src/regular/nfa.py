@@ -33,7 +33,6 @@ class NFA:
         self.Q, self.S, self.d_mat, self.q0, self.F = tuple_def
 
     def __repr__(self) -> str:
-        # associate states with human-readable numbers via enumeration
         state_map = {q: i for i, q in enumerate(self.Q, start=1)}
 
         return repr(

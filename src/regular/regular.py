@@ -38,7 +38,9 @@ class Regular:
         """
         Construct a regular language from a regular expression.
         """
-        return Parser(regex).parse().eval()
+        nfa = Parser(regex).parse().eval()
+
+        return Regular(DFA.from_NFA(nfa))
 
     @staticmethod
     def from_finite(language: set[str]) -> "Regular":
@@ -57,7 +59,7 @@ class Regular:
 
     def __and__(self, other):
         if isinstance(other, Regular):
-            return Regular(DFA.intersection(self, other))
+            return Regular(DFA.intersection(self.dfa, other.dfa))
         return NotImplemented
 
     def __or__(self, other):
@@ -79,7 +81,7 @@ class Regular:
 
     def __add__(self, other):
         if isinstance(other, Regular):
-            nfa = NFA.empty()
+            nfa = NFA.from_string("")
 
             if self.dfa is other.dfa:
                 nfa.update_concat(self.dfa, self.dfa.copy())
@@ -222,12 +224,9 @@ class Node:
         self.left = left
         self.right = right
 
-    def __repr__(self) -> str:
-        return repr({k: v for k, v in self.__dict__.items() if v is not None})
-
-    def eval(self) -> Regular:
+    def eval(self) -> NFA:
         """
-        Evaluate the syntax tree to produce a regular language
+        Evaluate the syntax tree to produce an NFA
         """
         if isinstance(self.val, Node.Operator):
             operator = self.val
@@ -239,27 +238,31 @@ class Node:
 
             match operator:
                 case Node.Operator.UNION:
-                    lang = a | b
+                    a.update_union(b)
                 case Node.Operator.CONCAT:
-                    lang = a + b
+                    a.update_concat(b)
                 case Node.Operator.STAR:
-                    lang = Regular(DFA.from_NFA(a.dfa.update_star()))
+                    a.update_star()
                 case Node.Operator.PLUS:
-                    lang = a + Regular(DFA.from_NFA(a.dfa.update_star()))
+                    a_copy = a.copy()
+                    a_copy.update_star()
+                    a.update_concat(a_copy)
                 case Node.Operator.QUESTION:
-                    lang = a | Regular.from_finite({""})
+                    a.update_union(NFA.from_string(""))
                 case _:
                     raise ValueError("invalid operator")
+            nfa = a
         else:
             token = self.val
             match token.type:
                 case Token.Type.SYMBOL:
-                    lang = Regular.from_finite({token.lexeme})
+                    nfa = NFA.from_string(token.lexeme)
                 case Token.Type.DOT:
-                    lang = Regular.from_finite(set(printable))
+                    nfa = NFA.empty()
+                    nfa.update_union(*(NFA.from_string(s) for s in printable))
                 case _:
                     raise ValueError("invalid operand")
-        return lang
+        return nfa
 
 
 class Parser:

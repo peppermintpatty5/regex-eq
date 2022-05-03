@@ -32,8 +32,6 @@ class DFA(NFA):
         super().__init__((Q, S, d, q0, F))
 
     def __repr__(self) -> str:
-        # pylint: disable=duplicate-code
-        # associate states with human-readable numbers via enumeration
         state_map = {q: i for i, q in enumerate(self.Q, start=1)}
 
         return repr(
@@ -136,24 +134,6 @@ class DFA(NFA):
             for state in visited
             if all(q in dfa.F for dfa, q in zip(dfas, state))
         }
-
-        return DFA((Q, S, d, q0, F))
-
-    def copy(self) -> "NFA":
-        """
-        Return a copy of the given DFA. The states in the copy are guaranteed to be
-        globally unique.
-        """
-        new_states = {q: object() for q in self.Q}
-
-        Q = set(new_states.values())
-        S = set(self.S)
-        d = {
-            (new_states[q_in], s): new_states[next(iter(q_out))]
-            for (q_in, s), q_out in self.d_mat.items()
-        }
-        q0 = new_states[self.q0]
-        F = {new_states[q] for q in self.F}
 
         return DFA((Q, S, d, q0, F))
 
