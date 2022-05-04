@@ -13,7 +13,6 @@ class DFA(NFA):
     """
 
     def __init__(
-        # pylint: disable=duplicate-code
         self,
         tuple_def: tuple[
             set[object],
@@ -28,15 +27,11 @@ class DFA(NFA):
         """
         Q, S, d, q0, F = tuple_def
 
-        d = {(q_in, c): {q_out} for (q_in, c), q_out in d.items()} | {
-            (q, ""): set() for q in Q
-        }
+        d = {(q_in, s): {q_out} for (q_in, s), q_out in d.items()}
 
         super().__init__((Q, S, d, q0, F))
 
     def __repr__(self) -> str:
-        # pylint: disable=duplicate-code
-        # associate states with human-readable numbers via enumeration
         state_map = {q: i for i, q in enumerate(self.Q, start=1)}
 
         return repr(
@@ -44,9 +39,9 @@ class DFA(NFA):
                 {state_map[q] for q in self.Q},
                 self.S,
                 {
-                    (state_map[q_in], c): state_map[next(iter(q_out))]
-                    for (q_in, c), q_out in self.d.items()
-                    if c != ""
+                    (state_map[q_in], s): state_map[next(iter(q_out))]
+                    for (q_in, s), q_out in self.d_mat.items()
+                    if s != ""
                 },
                 state_map[self.q0],
                 {state_map[q] for q in self.F},
@@ -69,7 +64,7 @@ class DFA(NFA):
 
             while queue:
                 q = queue.popleft()
-                for r in nfa.d[q, ""]:
+                for r in nfa.d(q, ""):
                     if r not in visited:
                         queue.append(r)
                         visited.add(r)
@@ -83,9 +78,9 @@ class DFA(NFA):
 
         while queue:
             subset = queue.popleft()
-            for c in nfa.S:
-                neighbors = E(set().union(*(nfa.d[q, c] for q in subset)))
-                transitions[subset, c] = neighbors
+            for s in nfa.S:
+                neighbors = E(set().union(*(nfa.d(q, s) for q in subset)))
+                transitions[subset, s] = neighbors
 
                 if neighbors not in subsets:
                     queue.append(neighbors)
@@ -96,10 +91,49 @@ class DFA(NFA):
         Q = set(states.values())
         S = nfa.S
         d = {
-            (states[R_in], c): states[R_out] for (R_in, c), R_out in transitions.items()
+            (states[R_in], s): states[R_out] for (R_in, s), R_out in transitions.items()
         }
         q0 = states[new_start]
         F = {states[R] for R in subsets if R & nfa.F != set()}
+
+        return DFA((Q, S, d, q0, F))
+
+    @staticmethod
+    def intersection(*dfas: "DFA") -> "DFA":
+        """
+        Construct a DFA that is the intersection of multiple DFAs.
+        """
+        S = set().union(*(dfa.S for dfa in dfas))
+
+        start = tuple(dfa.q0 for dfa in dfas)
+        queue = deque([start])
+        visited = {start}
+        transitions = {}
+
+        while queue:
+            state = queue.popleft()
+            for s in S:
+                next_state = tuple(
+                    next(iter(dfa.d(q, s)), None) for dfa, q in zip(dfas, state)
+                )
+                transitions[state, s] = next_state
+
+                if next_state not in visited:
+                    queue.append(next_state)
+                    visited.add(next_state)
+
+        state_map = {state: object() for state in visited}
+        Q = set(visited)
+        d = {
+            (state_map[state], s): state_map[next_state]
+            for (state, s), next_state in transitions.items()
+        }
+        q0 = state_map[start]
+        F = {
+            state_map[state]
+            for state in visited
+            if all(q in dfa.F for dfa, q in zip(dfas, state))
+        }
 
         return DFA((Q, S, d, q0, F))
 
@@ -108,67 +142,13 @@ class DFA(NFA):
         Return true if the DFA accepts the input string, false otherwise.
         """
         q = self.q0
-        for c in string:
-            (q,) = self.d[q, c]
+        for s in string:
+            (q,) = self.d(q, s)
 
         return q in self.F
 
-    def complement(self) -> "DFA":
+    def update_complement(self) -> None:
         """
-        Construct a DFA `M` from `M1` such that the language of `M`, denoted as `L(M)`,
-        is the complement of `L(M1)`.
+        Update a DFA with the complement of itself.
         """
-        Q = self.Q
-        S = self.S
-        d = {
-            (q_in, c): next(iter(q_out))
-            for (q_in, c), q_out in self.d.items()
-            if c != ""
-        }
-        q0 = self.q0
-        F = self.Q - self.F
-
-        return DFA((Q, S, d, q0, F))
-
-    def intersection(self, other: "DFA") -> "DFA":
-        """
-        Construct a DFA `M` from `M1` and `M2` such that the language of M, denoted as
-        `L(M)`, is the intersection of `L(M1)` and `L(M2).`
-        """
-        # pylint: disable=too-many-locals
-        S = self.S | other.S
-
-        pair_start = (self.q0, other.q0)
-        queue = deque([pair_start])
-        pairs = {pair_start}
-        transitions = {}
-
-        while queue:
-            x, y = pair = queue.popleft()
-            for s in S:
-                (x_out,) = self.d[x, s] if s in self.S else {None}
-                (y_out,) = other.d[y, s] if s in other.S else {None}
-                pair_out = (x_out, y_out)
-                transitions[pair, s] = pair_out
-
-                if pair_out not in pairs:
-                    queue.append(pair_out)
-                    pairs.add(pair_out)
-
-        states = {pair: object() for pair in pairs}
-        Q = set(states.values())
-        d = {
-            (states[pair_in], s): states[pair_out]
-            for (pair_in, s), pair_out in transitions.items()
-        }
-        q0 = states[pair_start]
-        F = {states[x, y] for x, y in pairs if x in self.F and y in other.F}
-
-        return DFA((Q, S, d, q0, F))
-
-    def union(self, other: "DFA") -> "DFA":
-        """
-        Construct a DFA `M` from `M1` and `M2` such that the language of M, denoted as
-        `L(M)`, is the union of `L(M1)` and `L(M2).`
-        """
-        return DFA.from_NFA(NFA.union(self, other))
+        self.F = self.Q - self.F

@@ -3,7 +3,6 @@ Classes relating to non-deterministic finite automaton
 """
 
 from collections import deque
-from itertools import product
 
 
 class NFA:
@@ -23,11 +22,17 @@ class NFA:
     ) -> None:
         """
         5-tuple definition of an NFA
+
+        Empty transitions may be omitted. For example, the following transition
+        dictionaries `d1` and `d2` are logically equivalent.
+        ```
+        d1 = {(q1, s): set()}
+        d2 = {}
+        ```
         """
-        self.Q, self.S, self.d, self.q0, self.F = tuple_def
+        self.Q, self.S, self.d_mat, self.q0, self.F = tuple_def
 
     def __repr__(self) -> str:
-        # associate states with human-readable numbers via enumeration
         state_map = {q: i for i, q in enumerate(self.Q, start=1)}
 
         return repr(
@@ -35,9 +40,8 @@ class NFA:
                 {state_map[q] for q in self.Q},
                 self.S,
                 {
-                    (state_map[q_in], c): {state_map[q] for q in q_out}
-                    for (q_in, c), q_out in self.d.items()
-                    if q_out != set()
+                    (state_map[q_in], s): {state_map[q] for q in q_out}
+                    for (q_in, s), q_out in self.d_mat.items()
                 },
                 state_map[self.q0],
                 {state_map[q] for q in self.F},
@@ -51,11 +55,20 @@ class NFA:
         while queue:
             q = queue.popleft()
             for s in self.S | {""}:
-                for q_out in self.d.get((q, s), set()):
+                for q_out in self.d(q, s):
                     if q_out not in visited:
                         queue.append(q_out)
                         visited.add(q_out)
             yield q
+
+    @staticmethod
+    def empty() -> "NFA":
+        """
+        Construct an NFA such that its language is the empty language.
+        """
+        q1 = object()
+
+        return NFA(({q1}, set(), {}, q1, set()))
 
     @staticmethod
     def from_string(string: str) -> "NFA":
@@ -67,32 +80,23 @@ class NFA:
 
         Q = set(states)
         S = set(string)
-        d = {(q, c): set() for q, c in product(Q, S | {""})}
-        for i, c in enumerate(string):
-            d[states[i], c] |= {states[i + 1]}
+        d = {(states[i], s): {states[i + 1]} for i, s in enumerate(string)}
         q0 = states[0]
         F = {states[-1]}
 
         return NFA((Q, S, d, q0, F))
 
-    @staticmethod
-    def from_alphabet(alphabet: set[str]) -> "NFA":
-        """
-        Construct an NFA such that its language is the given alphabet. The alphabet must
-        contain only single-character strings.
-        """
-        q0 = object()
-        states = {s: object() for s in alphabet}
+    def _add_transition(self, q: object, s: str, q_out: object) -> None:
+        if (q, s) in self.d_mat:
+            self.d_mat[q, s].add(q_out)
+        else:
+            self.d_mat[q, s] = {q_out}
 
-        Q = set(states.values()) | {q0}
-        S = set(alphabet)
-        d = {
-            (q, s): {states[s]} if q == q0 and s != "" else set()
-            for q, s in product(Q, S | {""})
-        }
-        F = set(states.values())
-
-        return NFA((Q, S, d, q0, F))
+    def d(self, q: object, s: str) -> set[object]:
+        """
+        Get the set of output states for the given input state and symbol.
+        """
+        return self.d_mat[q, s] if (q, s) in self.d_mat else set()
 
     def copy(self) -> "NFA":
         """
@@ -105,80 +109,60 @@ class NFA:
         S = set(self.S)
         d = {
             (new_states[q_in], s): {new_states[q] for q in q_out}
-            for (q_in, s), q_out in self.d.items()
+            for (q_in, s), q_out in self.d_mat.items()
         }
         q0 = new_states[self.q0]
         F = {new_states[q] for q in self.F}
 
         return NFA((Q, S, d, q0, F))
 
-    def concat(self, other: "NFA") -> "NFA":
+    def update_concat(self, *others: "NFA") -> None:
         """
-        Construct an NFA `N` from `N1` and `N2` such that the language of `N`, denoted
-        as `L(N)`, is the concatenation of `L(N1)` and `L(N2)`.
+        Update an NFA with the concatenation of itself and others.
         """
-        if self.Q & other.Q:
-            raise ValueError("states overlap")
+        for other in others:
+            if self.Q & other.Q:
+                raise ValueError("states overlap")
 
-        Q = self.Q | other.Q
-        S = self.S | other.S
-        d = {
-            (q, c): set(self.d[q, c])
-            if (q, c) in self.d
-            else set(other.d[q, c])
-            if (q, c) in other.d
-            else set()
-            for q, c in product(Q, S | {""})
-        }
-        for q in self.F:
-            d[q, ""] |= {other.q0}
-        q0 = self.q0
-        F = other.F
+            self.Q |= other.Q
+            self.S |= other.S
+            self.d_mat |= other.d_mat
+            for q in self.F:
+                self._add_transition(q, "", other.q0)
+            self.F = set(other.F)
 
-        return NFA((Q, S, d, q0, F))
-
-    def star(self) -> "NFA":
+    def update_star(self) -> None:
         """
-        Construct an NFA `N` from `N1` such that the language of `N`, denoted as `L(N)`,
-        is the Kleene star of `L(N1)`.
+        Update an NFA with the Kleene star of itself.
         """
         q0 = object()
-        Q = self.Q | {q0}
-        S = self.S
-        d = {
-            (q, c): set(self.d[q, c]) if (q, c) in self.d else set()
-            for q, c in product(Q, S | {""})
-        }
+
+        self.Q.add(q0)
         for q in self.F:
-            d[q, ""] |= {self.q0}
-        d[q0, ""] |= {self.q0}
-        F = self.F | {q0}
+            self._add_transition(q, "", self.q0)
+        self._add_transition(q0, "", self.q0)
+        self.F.add(q0)
+        self.q0 = q0
 
-        return NFA((Q, S, d, q0, F))
-
-    def union(self, other: "NFA") -> "NFA":
+    def update_union(self, *others: "NFA") -> None:
         """
-        Construct an NFA `N` from `N1` and `N2` such that the language of N, denoted as
-        `L(N)`, is the union of `L(N1)` and `L(N2)`.
+        Update an NFA with the union of itself and others.
         """
-        if self.Q & other.Q:
-            raise ValueError("states overlap")
+        if others:
+            q0 = object()
+            self.Q.add(q0)
+            self._add_transition(q0, "", self.q0)
+            self.q0 = q0
 
-        q0 = object()
-        Q = self.Q | other.Q | {q0}
-        S = self.S | other.S
-        d = {
-            (q, c): set(self.d[q, c])
-            if (q, c) in self.d
-            else set(other.d[q, c])
-            if (q, c) in other.d
-            else set()
-            for q, c in product(Q, S | {""})
-        }
-        d[q0, ""] |= {self.q0, other.q0}
-        F = self.F | other.F
+            for other in others:
+                if self.Q & other.Q:
+                    raise ValueError("states overlap")
 
-        return NFA((Q, S, d, q0, F))
+                self.Q |= other.Q
+                self.S |= other.S
+                self.d_mat |= other.d_mat
+                self._add_transition(q0, "", other.q0)
+                self.F |= other.F
 
     def is_empty(self) -> bool:
         """
